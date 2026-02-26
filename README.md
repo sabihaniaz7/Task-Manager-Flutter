@@ -75,7 +75,7 @@ android/app/src/main/
 
 ### Prerequisites
 
-- Flutter SDK `>=3.0.0`
+- Flutter SDK `>=3.0.0` (Used 3.10.7)
 - Android Studio or VS Code
 - Android device / emulator (Android 6.0+ / API 23+)
 
@@ -106,13 +106,14 @@ flutter run
 
 | Package | Version | Purpose |
 | --- | --- | --- |
-| `provider` | ^6.1.1 | State management |
-| `shared_preferences` | ^2.2.2 | Local data persistence |
-| `flutter_local_notifications` | ^17.0.0 | Scheduled notifications |
-| `flutter_timezone` | ^1.0.4 | Device timezone detection |
-| `timezone` | ^0.9.4 | Timezone-aware scheduling |
-| `uuid` | ^4.3.3 | Unique task IDs |
-| `intl` | ^0.19.0 | Date formatting |
+| `provider` | ^6.1.5+1 | State management |
+| `shared_preferences` | ^2.5.4 | Local data persistence |
+| `flutter_local_notifications` | ^20.1.0 | Scheduled notifications |
+| `flutter_timezone` | ^5.0.1 | Device timezone detection |
+| `timezone` | ^0.10.1 | Timezone-aware scheduling |
+| `uuid` | ^4.5.3 | Unique task IDs |
+| `intl` | ^0.20.2 | Date formatting |
+| `cupertino_icons` | ^1.0.8 | iOS-style icons |
 
 ---
 
