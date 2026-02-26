@@ -84,7 +84,7 @@ android/app/src/main/
 #### 1. Clone the repo
 
 ```bash
-git clone https://github.com/yourusername/task-manager.git
+git clone https://github.com/sabihaniaz7/task-manager.git
 cd task-manager
 ```
 
