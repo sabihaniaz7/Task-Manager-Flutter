@@ -47,14 +47,14 @@ class _SplashScreenState extends State<SplashScreen>
     _controller.forward();
 
     // Navigate after 2.5s
-    Future.delayed(const Duration(milliseconds: 10000), () {
+    Future.delayed(const Duration(milliseconds: 2500), () {
       if (mounted) {
         // Restore system UI
         SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
-            pageBuilder: (_, __, ___) => const MainScreen(),
-            transitionsBuilder: (_, anim, __, child) =>
+            pageBuilder: (_, _, _) => const MainScreen(),
+            transitionsBuilder: (_, anim, _, child) =>
                 FadeTransition(opacity: anim, child: child),
             transitionDuration: const Duration(milliseconds: 600),
           ),
@@ -84,7 +84,7 @@ class _SplashScreenState extends State<SplashScreen>
             left: -80,
             child: AnimatedBuilder(
               animation: _fadeAnimation,
-              builder: (_, __) => Opacity(
+              builder: (_, _) => Opacity(
                 opacity: _fadeAnimation.value * 0.15,
                 child: Container(
                   width: 400,
@@ -102,7 +102,7 @@ class _SplashScreenState extends State<SplashScreen>
             right: -60,
             child: AnimatedBuilder(
               animation: _fadeAnimation,
-              builder: (_, __) => Opacity(
+              builder: (_, _) => Opacity(
                 opacity: _fadeAnimation.value * 0.1,
                 child: Container(
                   width: 300,
@@ -119,7 +119,7 @@ class _SplashScreenState extends State<SplashScreen>
           Center(
             child: AnimatedBuilder(
               animation: _controller,
-              builder: (_, __) => Opacity(
+              builder: (_, _) => Opacity(
                 opacity: _fadeAnimation.value,
                 child: Transform.translate(
                   offset: _slideAnimation.value,
@@ -183,7 +183,7 @@ class _SplashScreenState extends State<SplashScreen>
             right: 0,
             child: AnimatedBuilder(
               animation: _creditFadeAnimation,
-              builder: (_, __) => Opacity(
+              builder: (_, _) => Opacity(
                 opacity: _creditFadeAnimation.value,
                 child: Column(
                   children: [
