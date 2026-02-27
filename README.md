@@ -43,14 +43,6 @@
 
 ---
 
-## Screenshots
-
-| Light Mode | Dark Mode | Add Task | Reminder |
-| --- | --- | --- | --- |
-| ![light]() | ![dark]() | ![add]() | ![reminder]() |
-
----
-
 ## Architecture
 
 ```dart
