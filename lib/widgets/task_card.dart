@@ -102,25 +102,13 @@ class _TaskCardState extends State<TaskCard>
           decoration: BoxDecoration(
             color: _cardColor(context),
             borderRadius: BorderRadius.circular(AppSizes.radiusCard),
-            boxShadow: _isExpanded
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(
-                        alpha: isDark ? 0.35 : 0.07,
-                      ),
-                      blurRadius: 20,
-                      offset: const Offset(0, 6),
-                    ),
-                  ]
-                : [
-                    BoxShadow(
-                      color: Colors.black.withValues(
-                        alpha: isDark ? 0.2 : 0.04,
-                      ),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
+                blurRadius: _isExpanded ? 18 : 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
           child: IntrinsicHeight(
             child: Row(
@@ -247,8 +235,11 @@ class _TaskCardState extends State<TaskCard>
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            if (task.isOverdue) ...[
-              const SizedBox(width: AppSizes.spacingS),
+            if (task.isCompleted) ...[
+              const SizedBox(width: AppSizes.spacingS + 2),
+              _completedChip(),
+            ] else if (task.isOverdue) ...[
+              const SizedBox(width: AppSizes.spacingS + 2),
               _overdueChip(),
             ],
           ],
@@ -282,6 +273,31 @@ class _TaskCardState extends State<TaskCard>
         //   ],
         // ),
       ],
+    );
+  }
+
+  Widget _completedChip() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.success.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(AppSizes.radiusChip),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          Icon(Icons.check_rounded, size: 9, color: AppColors.success),
+          SizedBox(width: 3),
+          Text(
+            'Done',
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+              color: AppColors.success,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
