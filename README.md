@@ -9,6 +9,19 @@
 
 ---
 
+## Preview
+
+<!-- markdownlint-disable MD033 -->
+| | |
+| :---: | :---: |
+| **Add Task (Dark)** | **Add Task (Light)** |
+| <img src="images/addDark.png" width="270" alt="Add Task Dark Mode"> | <img src="images/addLight.png" width="270" alt="Add Task Light Mode"> |
+| **Reminder System** | |
+| <img src="images/reminder.png" width="270" alt="Reminder System"> | |
+<!-- markdownlint-enable MD033 -->
+
+---
+
 ## Features
 
 - **Task Management** — Create, edit, delete tasks with title, description, and date range
