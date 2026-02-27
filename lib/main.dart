@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:taskmanager/providers/task_provider.dart';
-import 'package:taskmanager/screens/home_screen.dart';
+import 'package:taskmanager/screens/splash_screen.dart';
 import 'package:taskmanager/services/notification_service.dart';
 import 'package:taskmanager/utils/app_theme.dart';
 
@@ -43,7 +43,7 @@ class TaskManagerApp extends StatelessWidget {
           child: child!,
         );
       },
-      home: const HomeScreen(),
+      home: const SplashScreen(),
     );
   }
 }
