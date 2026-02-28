@@ -123,7 +123,7 @@ class _EditTrackerScreenState extends State<EditTrackerScreen> {
                 borderRadius: BorderRadius.circular(AppSizes.radiusButton),
                 border: Border.all(
                   color: _reminderEnabled
-                      ? theme.colorScheme.primary.withOpacity(0.35)
+                      ? theme.colorScheme.primary.withValues(alpha: 0.35)
                       : theme.dividerColor,
                   width: _reminderEnabled ? 1.5 : 1,
                 ),
@@ -143,8 +143,10 @@ class _EditTrackerScreenState extends State<EditTrackerScreen> {
                           height: 34,
                           decoration: BoxDecoration(
                             color: _reminderEnabled
-                                ? theme.colorScheme.primary.withOpacity(0.1)
-                                : theme.dividerColor.withOpacity(0.5),
+                                ? theme.colorScheme.primary.withValues(
+                                    alpha: 0.1,
+                                  )
+                                : theme.dividerColor.withValues(alpha: 0.5),
                             borderRadius: BorderRadius.circular(
                               AppSizes.radiusSmall,
                             ),
@@ -174,8 +176,8 @@ class _EditTrackerScreenState extends State<EditTrackerScreen> {
                                     : 'Tap to enable',
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   color: _reminderEnabled
-                                      ? theme.colorScheme.primary.withOpacity(
-                                          0.8,
+                                      ? theme.colorScheme.primary.withValues(
+                                          alpha: 0.8,
                                         )
                                       : null,
                                 ),
@@ -187,7 +189,7 @@ class _EditTrackerScreenState extends State<EditTrackerScreen> {
                           value: _reminderEnabled,
                           onChanged: (v) =>
                               setState(() => _reminderEnabled = v),
-                          activeColor: theme.colorScheme.primary,
+                          activeThumbColor: theme.colorScheme.primary,
                         ),
                       ],
                     ),

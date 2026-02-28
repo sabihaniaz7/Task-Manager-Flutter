@@ -46,6 +46,7 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildTabViews() {
     return TabBarView(
+      physics: const NeverScrollableScrollPhysics(),
       children: [
         _TaskList(type: _TaskListType.all),
         _TaskList(type: _TaskListType.active),

@@ -103,39 +103,41 @@ class _TrackerCardState extends State<TrackerCard>
             borderRadius: BorderRadius.circular(AppSizes.radiusCard),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.25 : 0.05),
+                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
                 blurRadius: _isExpanded ? 18 : 6,
                 offset: const Offset(0, 3),
               ),
             ],
           ),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // left bar with streak ratio
-                _streakBar(context, entry),
-
-                //Card content
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSizes.fontCaption),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _collapsableContent(context, entry, theme),
-                        SizeTransition(
-                          sizeFactor: _expandAnimation,
-                          axisAlignment: -1,
-                          child: _expandedContent(context, entry, theme),
-                        ),
-                      ],
-                    ),
+          child: Stack(
+            children: [
+              // streak bar positioned to stretch
+              Positioned(
+                top: 0,
+                bottom: 0,
+                left: 0,
+                child: _streakBar(context, entry),
+              ),
+              // Main content shifted to the right
+              Padding(
+                padding: const EdgeInsets.only(left: 42),
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSizes.fontCaption),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _collapsableContent(context, entry, theme),
+                      SizeTransition(
+                        sizeFactor: _expandAnimation,
+                        axisAlignment: -1,
+                        child: _expandedContent(context, entry, theme),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -208,12 +210,12 @@ class _TrackerCardState extends State<TrackerCard>
     ThemeData theme,
   ) {
     return Padding(
-      padding: const .only(top: 10),
+      padding: const EdgeInsets.only(top: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Divider(color: Colors.black.withOpacity(0.08), height: 1),
+          Divider(color: Colors.black.withValues(alpha: 0.08), height: 1),
           const SizedBox(height: 12),
           //stats row
           Row(
@@ -263,14 +265,14 @@ class _TrackerCardState extends State<TrackerCard>
                     ),
                     decoration: BoxDecoration(
                       color: entry.isArchived
-                          ? AppColors.success.withOpacity(0.2)
+                          ? AppColors.success.withValues(alpha: 0.2)
                           : AppColors.actionBg(context),
                       borderRadius: BorderRadius.circular(
                         AppSizes.radiusSmall + 2,
                       ),
                       border: entry.isArchived
                           ? Border.all(
-                              color: AppColors.success.withOpacity(0.4),
+                              color: AppColors.success.withValues(alpha: 0.4),
                             )
                           : null,
                     ),
@@ -343,7 +345,7 @@ class _TrackerCardState extends State<TrackerCard>
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
         ),
         child: Column(
@@ -361,7 +363,7 @@ class _TrackerCardState extends State<TrackerCard>
               style: TextStyle(
                 fontSize: 9,
                 fontWeight: FontWeight.w600,
-                color: color.withOpacity(0.8),
+                color: color.withValues(alpha: 0.8),
               ),
             ),
           ],
@@ -376,8 +378,8 @@ class _TrackerCardState extends State<TrackerCard>
     ThemeData theme,
   ) {
     return Column(
-      crossAxisAlignment: .start,
-      mainAxisSize: .min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Row(
           children: [
@@ -390,7 +392,7 @@ class _TrackerCardState extends State<TrackerCard>
                       : null,
                 ),
                 maxLines: 1,
-                overflow: .ellipsis,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             // Streak Fire Badge
@@ -408,7 +410,7 @@ class _TrackerCardState extends State<TrackerCard>
               color: AppColors.subtextColor(context),
             ),
             maxLines: 1,
-            overflow: .ellipsis,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
         const SizedBox(height: 8),
@@ -422,7 +424,7 @@ class _TrackerCardState extends State<TrackerCard>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: AppColors.warning.withOpacity(0.15),
+        color: AppColors.warning.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(AppSizes.radiusChip),
       ),
       child: Row(
@@ -460,8 +462,8 @@ class _TrackerCardState extends State<TrackerCard>
         // done = bar color, missed = bar color 20% opacity border
         final barColor = _barColor(context);
         final doneColor = barColor;
-        final missedBorderColor = barColor.withOpacity(0.5);
-        final missedBgColor = barColor.withOpacity(0.12);
+        final missedBorderColor = barColor.withValues(alpha: 0.5);
+        final missedBgColor = barColor.withValues(alpha: 0.12);
         return Expanded(
           child: Column(
             children: [
@@ -486,7 +488,7 @@ class _TrackerCardState extends State<TrackerCard>
                   height: 26,
                   width: 26,
                   decoration: BoxDecoration(
-                    shape: .circle,
+                    shape: BoxShape.circle,
                     color: isBeforeStart || isFuture
                         ? Colors.transparent
                         : done
@@ -549,47 +551,56 @@ class _TrackerCardState extends State<TrackerCard>
               .toList(),
         ),
         const SizedBox(height: 4),
-        // Grid
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 7,
-            mainAxisSpacing: 4,
-            crossAxisSpacing: 4,
-          ),
-          itemCount: leadingEmpties + days.length,
-          itemBuilder: (ctx, i) {
-            if (i < leadingEmpties) return const SizedBox();
-            final day = days[i - leadingEmpties];
-            final date = day['date'] as DateTime;
-            final done = day['done'] as bool;
-            final isToday = day['isToday'] as bool;
-            return GestureDetector(
-              onTap: () =>
-                  context.read<TrackerProvider>().toggleDate(entry.id, date),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: done
-                      ? AppColors.success
-                      : AppColors.danger.withOpacity(0.15),
-                  border: isToday
-                      ? Border.all(
-                          color: Theme.of(context).colorScheme.primary,
-                          width: 2,
-                        )
-                      : null,
-                ),
-                child: Icon(
-                  done ? Icons.check_rounded : Icons.close_rounded,
-                  size: 12,
-                  color: done
-                      ? Colors.white
-                      : AppColors.danger.withOpacity(0.5),
-                ),
-              ),
+        // Grid refactored to Wrap
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final double spacing = 4.0;
+            final double itemSize = (constraints.maxWidth - (spacing * 6)) / 7;
+
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: List.generate(leadingEmpties + days.length, (i) {
+                if (i < leadingEmpties) {
+                  return SizedBox(width: itemSize, height: itemSize);
+                }
+
+                final day = days[i - leadingEmpties];
+                final date = day['date'] as DateTime;
+                final done = day['done'] as bool;
+                final isToday = day['isToday'] as bool;
+
+                return GestureDetector(
+                  onTap: () => context.read<TrackerProvider>().toggleDate(
+                    entry.id,
+                    date,
+                  ),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    width: itemSize,
+                    height: itemSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: done
+                          ? AppColors.success
+                          : AppColors.danger.withValues(alpha: 0.15),
+                      border: isToday
+                          ? Border.all(
+                              color: Theme.of(context).colorScheme.primary,
+                              width: 2,
+                            )
+                          : null,
+                    ),
+                    child: Icon(
+                      done ? Icons.check_rounded : Icons.close_rounded,
+                      size: 12,
+                      color: done
+                          ? Colors.white
+                          : AppColors.danger.withValues(alpha: 0.5),
+                    ),
+                  ),
+                );
+              }),
             );
           },
         ),

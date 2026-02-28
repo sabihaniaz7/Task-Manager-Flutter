@@ -26,8 +26,7 @@ class TrackerScreen extends StatelessWidget {
             120,
           ),
           itemBuilder: (ctx, i) => TrackerCard(trackerEntry: entries[i]),
-          separatorBuilder: (_, __) =>
-              const SizedBox(height: AppSizes.spacingM),
+          separatorBuilder: (_, _) => const SizedBox(height: AppSizes.spacingM),
           itemCount: entries.length,
         );
       },
@@ -44,7 +43,7 @@ class TrackerScreen extends StatelessWidget {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: theme.dividerColor.withOpacity(0.5),
+              color: theme.dividerColor.withValues(alpha: 0.5),
               shape: BoxShape.circle,
             ),
             child: Icon(

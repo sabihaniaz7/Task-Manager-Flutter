@@ -108,15 +108,15 @@ class _MainScreenState extends State<MainScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? theme.colorScheme.primary.withOpacity(0.08)
-                            : theme.dividerColor.withOpacity(0.3),
+                            ? theme.colorScheme.primary.withValues(alpha: 0.08)
+                            : theme.dividerColor.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(
                           AppSizes.radiusButton,
                         ),
                         border: isSelected
                             ? Border.all(
-                                color: theme.colorScheme.primary.withOpacity(
-                                  0.3,
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.3,
                                 ),
                                 width: 1.5,
                               )
@@ -216,6 +216,7 @@ class _MainScreenState extends State<MainScreen> {
             Expanded(
               child: PageView(
                 controller: _pageController,
+                physics: const ClampingScrollPhysics(),
                 onPageChanged: (i) => setState(() => _currentIndex = i),
                 children: const [HomeScreen(), TrackerScreen()],
               ),
