@@ -199,7 +199,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       appBar: AppBar(
         title: Text(
           "New Task",
-          style: theme.textTheme.headlineMedium?.copyWith(fontSize: 18),
+          style: theme.textTheme.titleMedium?.copyWith(fontSize: 18),
         ),
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
@@ -216,7 +216,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
             const SizedBox(height: AppSizes.spacingS),
             TextFormField(
               controller: _titleController,
-              autofocus: true,
+              autofocus: false,
               decoration: _inputDecoration(context, 'Enter task title...'),
               style: theme.textTheme.titleMedium,
               textCapitalization: TextCapitalization.sentences,

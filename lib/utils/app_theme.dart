@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AppColors {
   static const List<int> cardPalette = [
@@ -61,6 +62,11 @@ class AppColors {
   static Color actionIconColor(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return isDark ? const Color(0xFFBBBDD0) : const Color(0xFF50586A);
+  }
+
+  static Color subtextColor(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark ? const Color(0xFF8890B0) : const Color(0xFF606878);
   }
 }
 
@@ -326,11 +332,34 @@ class AppTheme {
 
 // ── Simple notifier to toggle theme mode ──────────────────
 class ThemeModeNotifier extends ChangeNotifier {
+  static const _key = 'theme_mode';
   ThemeMode _mode = ThemeMode.system;
   ThemeMode get mode => _mode;
+  ThemeModeNotifier(ThemeMode initial) : _mode = initial;
+  // toggle between light and dark only (never back to system after user picks)
 
   void toggle() {
     _mode = _mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+    _persist();
     notifyListeners();
+  }
+
+  Future<void> _persist() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_key, _mode.name); // 'light', 'dark', 'system'
+  }
+
+  static Future<ThemeMode> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_key);
+    if (saved == null) return ThemeMode.system; // first launch = follow system
+    switch (saved) {
+      case 'light':
+        return ThemeMode.light;
+      case 'dark':
+        return ThemeMode.dark;
+      default:
+        return ThemeMode.system;
+    }
   }
 }
