@@ -74,7 +74,7 @@ class TrackerCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppSizes.radiusCard),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.22 : 0.05),
+                color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -148,7 +148,7 @@ class TrackerCard extends StatelessWidget {
                 child: Icon(
                   Icons.chevron_right_rounded,
                   size: 20,
-                  color: AppColors.subtextColor(context).withOpacity(0.5),
+                  color: AppColors.subtextColor(context).withValues(alpha: 0.5),
                 ),
               ),
             ],

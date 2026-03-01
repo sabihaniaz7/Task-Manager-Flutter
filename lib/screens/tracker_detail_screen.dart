@@ -61,7 +61,7 @@ class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
     final surface = isDark ? AppColors.darkSurface : AppColors.lightSurface;
 
     return Consumer<TrackerProvider>(
-      builder: (_, provider, __) {
+      builder: (_, provider, _) {
         // Always get fresh entry from provider
         final entry = provider.entries.firstWhere(
           (e) => e.id == widget.trackerEntry.id,
@@ -124,12 +124,12 @@ class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: barColor.withOpacity(0.12),
+                            color: barColor.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(
                               AppSizes.radiusButton,
                             ),
                             border: Border.all(
-                              color: barColor.withOpacity(0.3),
+                              color: barColor.withValues(alpha: 0.3),
                               width: 1,
                             ),
                           ),
@@ -203,8 +203,8 @@ class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(
-                                  isDark ? 0.3 : 0.06,
+                                color: Colors.black.withValues(
+                                  alpha: isDark ? 0.3 : 0.06,
                                 ),
                                 blurRadius: 16,
                                 offset: const Offset(0, 4),
@@ -309,7 +309,7 @@ class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
                               _legendItem(barColor, 'Done'),
                               const SizedBox(width: 20),
                               _legendItem(
-                                AppColors.danger.withOpacity(0.4),
+                                AppColors.danger.withValues(alpha: 0.4),
                                 'Missed',
                               ),
                               const SizedBox(width: 20),
@@ -419,16 +419,16 @@ class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
                       color: isBeforeStart || isFuture
                           ? Colors.transparent
                           : done
-                          ? barColor.withOpacity(0.85)
-                          : AppColors.danger.withOpacity(0.12),
+                          ? barColor.withValues(alpha: 0.85)
+                          : AppColors.danger.withValues(alpha: 0.12),
                       border: isToday
                           ? Border.all(color: barColor, width: 2)
                           : isBeforeStart || isFuture
                           ? null
                           : Border.all(
                               color: done
-                                  ? barColor.withOpacity(0.6)
-                                  : AppColors.danger.withOpacity(0.25),
+                                  ? barColor.withValues(alpha: 0.6)
+                                  : AppColors.danger.withValues(alpha: 0.25),
                               width: 1,
                             ),
                     ),
@@ -443,7 +443,7 @@ class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
                                 ? FontWeight.w900
                                 : FontWeight.w600,
                             color: isBeforeStart || isFuture
-                                ? _subtextColor(context).withOpacity(0.3)
+                                ? _subtextColor(context).withValues(alpha: 0.3)
                                 : done
                                 ? Colors.white
                                 : isToday
@@ -457,7 +457,7 @@ class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
                             size: 9,
                             color: done
                                 ? Colors.white70
-                                : AppColors.danger.withOpacity(0.4),
+                                : AppColors.danger.withValues(alpha: 0.4),
                           ),
                       ],
                     ),
@@ -488,8 +488,10 @@ class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
           borderRadius: BorderRadius.circular(AppSizes.radiusCard),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(
-                Theme.of(context).brightness == Brightness.dark ? 0.3 : 0.05,
+              color: Colors.black.withValues(
+                alpha: Theme.of(context).brightness == Brightness.dark
+                    ? 0.3
+                    : 0.05,
               ),
               blurRadius: 10,
               offset: const Offset(0, 3),

@@ -137,7 +137,7 @@ class NotificationService {
 
     await _scheduleNotification(
       id: task.notificationStartId,
-      title: 'Task Manager',
+      title: 'TM',
       body: '"${task.title}" — Due ${_formatDate(task.endDate)}',
       scheduledDate: creationNotifyTime,
     );
@@ -312,7 +312,7 @@ class NotificationService {
     // ── Creation confirmation ──
     await _scheduleNotification(
       id: id,
-      title: 'Task Manager',
+      title: 'TM',
       body: '"${tracker.title}" — tracking starts today!',
       scheduledDate: now.add(const Duration(seconds: 3)),
     );
@@ -330,7 +330,7 @@ class NotificationService {
       if (remind.isAfter(now)) {
         await _scheduleNotification(
           id: id + 1 + scheduled,
-          title: 'Task Manager',
+          title: 'TM',
           body: '"${tracker.title}"',
           scheduledDate: remind,
         );
