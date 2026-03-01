@@ -18,6 +18,8 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   late final PageController _pageController;
 
+  final _trackerKey = GlobalKey<TrackerScreenState>();
+
   // Titles and subtitles per screen
   static const _titles = ['Task Manager', 'Tracker'];
   static const _subtitles = ['Stay organized.', 'Build consistent habits.'];
@@ -52,6 +54,7 @@ class _MainScreenState extends State<MainScreen> {
     final provider = context.read<TaskProvider>();
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Consumer<TaskProvider>(
@@ -65,11 +68,11 @@ class _MainScreenState extends State<MainScreen> {
                 top: Radius.circular(AppSizes.radiusSheet),
               ),
             ),
-            padding: const EdgeInsets.fromLTRB(
+            padding: EdgeInsets.fromLTRB(
               AppSizes.spacingXL,
               AppSizes.spacingM,
               AppSizes.spacingXL,
-              AppSizes.spacingXXL,
+              AppSizes.spacingXXL + MediaQuery.of(context).padding.bottom,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -210,7 +213,9 @@ class _MainScreenState extends State<MainScreen> {
               subtitles: _subtitles,
               isDark: isDark,
               onToggleTheme: () => context.read<ThemeModeNotifier>().toggle(),
-              onSort: _currentIndex == 0 ? () => _showSortSheet(context) : null,
+              onSort: _currentIndex == 0
+                  ? () => _showSortSheet(context)
+                  : () => _trackerKey.currentState?.showSortSheet(context),
             ),
             // ── Swipeable pages ────────────────────────
             Expanded(
@@ -218,7 +223,10 @@ class _MainScreenState extends State<MainScreen> {
                 controller: _pageController,
                 physics: const ClampingScrollPhysics(),
                 onPageChanged: (i) => setState(() => _currentIndex = i),
-                children: const [HomeScreen(), TrackerScreen()],
+                children: [
+                  HomeScreen(),
+                  TrackerScreen(key: _trackerKey),
+                ],
               ),
             ),
           ],

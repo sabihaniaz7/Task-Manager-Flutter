@@ -2,51 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:taskmanager/models/tracker.dart';
 import 'package:taskmanager/providers/tracker_provider.dart';
-import 'package:taskmanager/screens/edit_tracker_screen.dart';
+import 'package:taskmanager/screens/tracker_detail_screen.dart';
 import 'package:taskmanager/utils/app_theme.dart';
 
-class TrackerCard extends StatefulWidget {
+class TrackerCard extends StatelessWidget {
   final Tracker trackerEntry;
   const TrackerCard({super.key, required this.trackerEntry});
-
-  @override
-  State<TrackerCard> createState() => _TrackerCardState();
-}
-
-class _TrackerCardState extends State<TrackerCard>
-    with TickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _expandAnimation;
-  bool _isExpanded = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _expandAnimation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _toggle() {
-    setState(() => _isExpanded = !_isExpanded);
-    _isExpanded ? _controller.forward() : _controller.reverse();
-  }
 
   // Colors
   Color _cardColor(BuildContext context) {
     final base = Color(
-      AppColors.cardPalette[widget.trackerEntry.colorIndex %
+      AppColors.cardPalette[trackerEntry.colorIndex %
           AppColors.cardPalette.length],
     );
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -60,7 +26,7 @@ class _TrackerCardState extends State<TrackerCard>
 
   Color _barColor(BuildContext context) {
     final base = Color(
-      AppColors.cardPalette[widget.trackerEntry.colorIndex %
+      AppColors.cardPalette[trackerEntry.colorIndex %
           AppColors.cardPalette.length],
     );
     final hsl = HSLColor.fromColor(base);
@@ -73,9 +39,11 @@ class _TrackerCardState extends State<TrackerCard>
 
   @override
   Widget build(BuildContext context) {
-    final entry = widget.trackerEntry;
+    final entry = trackerEntry;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final theme = Theme.of(context);
+    final barColor = _barColor(context);
+
     return Dismissible(
       key: Key(entry.id),
       background: _swipBg(isDelete: false),
@@ -94,18 +62,21 @@ class _TrackerCardState extends State<TrackerCard>
         }
       },
       child: GestureDetector(
-        onTap: _toggle,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => TrackerDetailScreen(trackerEntry: entry),
+          ),
+        ),
+        child: Container(
           decoration: BoxDecoration(
             color: _cardColor(context),
             borderRadius: BorderRadius.circular(AppSizes.radiusCard),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
-                blurRadius: _isExpanded ? 18 : 6,
-                offset: const Offset(0, 3),
+                color: Colors.black.withOpacity(isDark ? 0.22 : 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -121,20 +92,63 @@ class _TrackerCardState extends State<TrackerCard>
               // Main content shifted to the right
               Padding(
                 padding: const EdgeInsets.only(left: 42),
+                // padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
                 child: Padding(
                   padding: const EdgeInsets.all(AppSizes.fontCaption),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _collapsableContent(context, entry, theme),
-                      SizeTransition(
-                        sizeFactor: _expandAnimation,
-                        axisAlignment: -1,
-                        child: _expandedContent(context, entry, theme),
+                      // Title row + streak badge
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              entry.title,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                decoration: entry.isArchived
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (entry.currentStreak > 0) ...[
+                            const SizedBox(width: 8),
+                            _streakBadge(entry.currentStreak),
+                          ],
+                        ],
                       ),
+
+                      if (entry.description.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          entry.description,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.subtextColor(context),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+
+                      const SizedBox(height: 10),
+
+                      // ── 7-day strip ──────────────────
+                      _sevenDayStrip(context, entry, barColor),
                     ],
                   ),
+                ),
+              ),
+
+              // ── Right arrow hint ─────────────────────
+              Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: AppColors.subtextColor(context).withOpacity(0.5),
                 ),
               ),
             ],
@@ -171,7 +185,7 @@ class _TrackerCardState extends State<TrackerCard>
           left: Radius.circular(AppSizes.radiusCard),
         ),
       ),
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -204,225 +218,9 @@ class _TrackerCardState extends State<TrackerCard>
     );
   }
 
-  Widget _expandedContent(
-    BuildContext context,
-    Tracker entry,
-    ThemeData theme,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Divider(color: Colors.black.withValues(alpha: 0.08), height: 1),
-          const SizedBox(height: 12),
-          //stats row
-          Row(
-            children: [
-              _statChip(
-                context,
-                label: 'Done',
-                value: '${entry.doneDays}',
-                color: AppColors.success,
-              ),
-              const SizedBox(width: 8),
-              _statChip(
-                context,
-                label: 'Missed',
-                value: '${entry.totalDays - entry.doneDays}',
-                color: AppColors.danger,
-              ),
-              const SizedBox(width: 8),
-              _statChip(
-                context,
-                label: 'Streak',
-                value: '${entry.currentStreak}',
-                color: AppColors.warning,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          //// Calendar label
-          ///
-          Text('TAP A DAY TO TOGGLE', style: theme.textTheme.labelMedium),
-          const SizedBox(height: 8),
-          // Calendar grid
-          _calendarGrid(context, entry),
-          const SizedBox(height: 10),
-
-          // Action row: archive + edit
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () =>
-                      context.read<TrackerProvider>().archiveEntry(entry.id),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: entry.isArchived
-                          ? AppColors.success.withValues(alpha: 0.2)
-                          : AppColors.actionBg(context),
-                      borderRadius: BorderRadius.circular(
-                        AppSizes.radiusSmall + 2,
-                      ),
-                      border: entry.isArchived
-                          ? Border.all(
-                              color: AppColors.success.withValues(alpha: 0.4),
-                            )
-                          : null,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          entry.isArchived
-                              ? Icons.check_circle_rounded
-                              : Icons.archive_rounded,
-                          size: 17,
-                          color: entry.isArchived
-                              ? AppColors.success
-                              : AppColors.actionIconColor(context),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          entry.isArchived ? 'Completed' : 'Mark Complete',
-                          style: TextStyle(
-                            fontSize: AppSizes.fontCaption,
-                            fontWeight: FontWeight.w700,
-                            color: entry.isArchived
-                                ? AppColors.success
-                                : AppColors.actionIconColor(context),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => EditTrackerScreen(trackerEntry: entry),
-                  ),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.actionBg(context),
-                    borderRadius: BorderRadius.circular(
-                      AppSizes.radiusSmall + 2,
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.edit_rounded,
-                    size: 17,
-                    color: AppColors.actionIconColor(context),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 2),
-        ],
-      ),
-    );
-  }
-
-  Widget _statChip(
-    BuildContext context, {
-    required String label,
-    required String value,
-    required Color color,
-  }) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-        ),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                color: color,
-              ),
-            ),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w600,
-                color: color.withValues(alpha: 0.8),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _collapsableContent(
-    BuildContext context,
-    Tracker entry,
-    ThemeData theme,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                entry.title,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  decoration: entry.isArchived
-                      ? TextDecoration.lineThrough
-                      : null,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            // Streak Fire Badge
-            if (entry.currentStreak > 0) ...[
-              const SizedBox(width: 6),
-              _streakBadge(entry.currentStreak),
-            ],
-          ],
-        ),
-        if (entry.description.isNotEmpty) ...[
-          const SizedBox(height: 3),
-          Text(
-            entry.description,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: AppColors.subtextColor(context),
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-        const SizedBox(height: 8),
-        // 7 days strip
-        _sevenDayStrip(context, entry),
-      ],
-    );
-  }
-
   Widget _streakBadge(int streak) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: AppColors.warning.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(AppSizes.radiusChip),
@@ -445,7 +243,7 @@ class _TrackerCardState extends State<TrackerCard>
     );
   }
 
-  Widget _sevenDayStrip(BuildContext context, Tracker entry) {
+  Widget _sevenDayStrip(BuildContext context, Tracker entry, Color barColor) {
     final days = entry.last7Days.reversed.toList();
     return Row(
       children: days.map((d) {
@@ -460,7 +258,6 @@ class _TrackerCardState extends State<TrackerCard>
         final dayLabel = dayNames[date.weekday - 1];
 
         // done = bar color, missed = bar color 20% opacity border
-        final barColor = _barColor(context);
         final doneColor = barColor;
         final missedBorderColor = barColor.withValues(alpha: 0.5);
         final missedBgColor = barColor.withValues(alpha: 0.12);
@@ -475,7 +272,7 @@ class _TrackerCardState extends State<TrackerCard>
                   color: isToday ? barColor : AppColors.subtextColor(context),
                 ),
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 4),
               GestureDetector(
                 onTap: isBeforeStart || isFuture
                     ? null
@@ -505,7 +302,7 @@ class _TrackerCardState extends State<TrackerCard>
                       ? null
                       : Icon(
                           done ? Icons.check_rounded : Icons.close_rounded,
-                          size: 13,
+                          size: 14,
                           color: done ? Colors.white : missedBorderColor,
                         ),
                 ),
@@ -514,97 +311,6 @@ class _TrackerCardState extends State<TrackerCard>
           ),
         );
       }).toList(),
-    );
-  }
-
-  Widget _calendarGrid(BuildContext context, Tracker entry) {
-    final days = entry.calendarDays;
-    if (days.isEmpty) {
-      return Center(
-        child: Text(
-          'Start tracking from today!',
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
-      );
-    }
-
-    // Fill leading empty cells so first day aligns to correct weekday
-    final firstDate = days.first['date'] as DateTime;
-    final leadingEmpties = firstDate.weekday - 1; // Mon=1
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Weekday headers
-        Row(
-          children: ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-              .map(
-                (d) => Expanded(
-                  child: Center(
-                    child: Text(
-                      d,
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                  ),
-                ),
-              )
-              .toList(),
-        ),
-        const SizedBox(height: 4),
-        // Grid refactored to Wrap
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final double spacing = 4.0;
-            final double itemSize = (constraints.maxWidth - (spacing * 6)) / 7;
-
-            return Wrap(
-              spacing: spacing,
-              runSpacing: spacing,
-              children: List.generate(leadingEmpties + days.length, (i) {
-                if (i < leadingEmpties) {
-                  return SizedBox(width: itemSize, height: itemSize);
-                }
-
-                final day = days[i - leadingEmpties];
-                final date = day['date'] as DateTime;
-                final done = day['done'] as bool;
-                final isToday = day['isToday'] as bool;
-
-                return GestureDetector(
-                  onTap: () => context.read<TrackerProvider>().toggleDate(
-                    entry.id,
-                    date,
-                  ),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    width: itemSize,
-                    height: itemSize,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: done
-                          ? AppColors.success
-                          : AppColors.danger.withValues(alpha: 0.15),
-                      border: isToday
-                          ? Border.all(
-                              color: Theme.of(context).colorScheme.primary,
-                              width: 2,
-                            )
-                          : null,
-                    ),
-                    child: Icon(
-                      done ? Icons.check_rounded : Icons.close_rounded,
-                      size: 12,
-                      color: done
-                          ? Colors.white
-                          : AppColors.danger.withValues(alpha: 0.5),
-                    ),
-                  ),
-                );
-              }),
-            );
-          },
-        ),
-      ],
     );
   }
 
@@ -617,7 +323,7 @@ class _TrackerCardState extends State<TrackerCard>
         ),
         title: const Text('Delete Tracker?'),
         content: Text(
-          'Delete "${widget.trackerEntry.title}"? All history will be lost.',
+          'Delete "${trackerEntry.title}"? All history will be lost.',
         ),
         actions: [
           TextButton(

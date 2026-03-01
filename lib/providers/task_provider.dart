@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:taskmanager/models/task.dart';
 import 'package:taskmanager/services/notification_service.dart';
 import 'package:taskmanager/services/storage_service.dart';
@@ -10,6 +11,14 @@ class TaskProvider extends ChangeNotifier {
   final StorageService _storage = StorageService();
   final NotificationService _notifications = NotificationService();
   final _uuid = const Uuid();
+  static const _widgetChannel = MethodChannel('com.example.taskmanager/widget');
+
+  // Tells Android to refresh all home screen widgets
+  Future<void> _refreshWidget() async {
+    try {
+      await _widgetChannel.invokeMethod('refreshWidget');
+    } catch (_) {}
+  }
 
   List<Task> _tasks = [];
   SortOptions _sortOption = SortOptions.createdDate;
@@ -98,6 +107,7 @@ class TaskProvider extends ChangeNotifier {
     _tasks.add(task);
     await _storage.saveTasks(_tasks);
     await _notifications.scheduleTaskNotifications(task);
+    await _refreshWidget();
     notifyListeners();
   }
 
@@ -111,6 +121,7 @@ class TaskProvider extends ChangeNotifier {
       } else {
         await _notifications.cancelTaskNotifications(task);
       }
+      await _refreshWidget();
       notifyListeners();
     }
   }
@@ -127,6 +138,7 @@ class TaskProvider extends ChangeNotifier {
       } else {
         await _notifications.scheduleTaskNotifications(_tasks[index]);
       }
+      await _refreshWidget();
       notifyListeners();
     }
   }
@@ -136,6 +148,7 @@ class TaskProvider extends ChangeNotifier {
     await _notifications.cancelTaskNotifications(task);
     _tasks.removeWhere((t) => t.id == id);
     await _storage.saveTasks(_tasks);
+    await _refreshWidget();
     notifyListeners();
   }
 
