@@ -145,7 +145,7 @@ class TrackerWidgetProvider : AppWidgetProvider() {
             // ── Tracker content ──
             val trackers = getActiveTrackers(context)
             if (trackers.isEmpty()) {
-                views.setTextViewText(R.id.tracker_widget_title, "No trackers yet 🌱")
+                views.setTextViewText(R.id.tracker_widget_title, "No Goals to track yet!")
                 views.setTextViewText(R.id.tracker_widget_status, "")
                 views.setTextViewText(R.id.tracker_widget_streak, "")
             } else {
@@ -174,7 +174,7 @@ class TrackerWidgetProvider : AppWidgetProvider() {
                 views.setTextViewText(R.id.tracker_widget_title, title)
                 views.setTextViewText(
                     R.id.tracker_widget_status,
-                    if (doneToday) "✅ Done today" else "⭕ Not done yet"
+                    if (doneToday) "Done today!" else "Not done yet!"
                 )
                 views.setTextViewText(
                     R.id.tracker_widget_streak,

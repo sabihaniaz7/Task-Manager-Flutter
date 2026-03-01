@@ -8,30 +8,70 @@
     android:padding="16dp"
     android:background="#1C1C2E">
 
-    <!-- App logo + name row -->
-    <LinearLayout
+    <!-- App logo + name row with nav buttons top-right -->
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
         android:layout_marginBottom="10dp">
 
-        <ImageView
-            android:layout_width="18dp"
-            android:layout_height="18dp"
-            android:src="@mipmap/ic_launcher"
-            android:scaleType="fitCenter" />
-
-        <TextView
+        <!-- Logo + label on the left -->
+        <LinearLayout
+            android:id="@+id/tracker_header_left"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
-            android:text="Tracker"
-            android:textSize="11sp"
-            android:textColor="#99FFFFFF"
-            android:letterSpacing="0.05" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true">
 
-    </LinearLayout>
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@mipmap/ic_launcher"
+                android:scaleType="fitCenter" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="Tracker"
+                android:textSize="11sp"
+                android:textColor="#99FFFFFF"
+                android:letterSpacing="0.05" />
+
+        </LinearLayout>
+
+        <!-- Prev / Next nav buttons top-right -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true">
+
+            <ImageButton
+                android:id="@+id/tracker_widget_prev"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_chevron_left"
+                android:background="@drawable/circle_transparent"
+                android:padding="2dp"
+                android:scaleType="fitCenter" />
+
+            <ImageButton
+                android:id="@+id/tracker_widget_next"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="4dp"
+                android:src="@drawable/ic_chevron_right"
+                android:background="@drawable/circle_transparent"
+                android:padding="2dp"
+                android:scaleType="fitCenter" />
+
+        </LinearLayout>
+
+    </RelativeLayout>
 
     <!-- Tracker title -->
     <TextView
@@ -69,35 +109,6 @@
             android:text=""
             android:textSize="12sp"
             android:textColor="#FFD080" />
-
-    </LinearLayout>
-
-    <!-- Prev / Next navigation -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="end"
-        android:layout_marginTop="10dp">
-
-        <ImageButton
-            android:id="@+id/tracker_widget_prev"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:src="@drawable/ic_chevron_left"
-            android:background="#33FFFFFF"
-            android:padding="4dp"
-            android:scaleType="fitCenter" />
-
-        <ImageButton
-            android:id="@+id/tracker_widget_next"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="8dp"
-            android:src="@drawable/ic_chevron_right"
-            android:background="#33FFFFFF"
-            android:padding="4dp"
-            android:scaleType="fitCenter" />
 
     </LinearLayout>
 

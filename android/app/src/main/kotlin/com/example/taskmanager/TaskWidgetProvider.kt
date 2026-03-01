@@ -136,7 +136,7 @@ class TaskWidgetProvider : AppWidgetProvider() {
             // ── Task content ──
             val tasks = getActiveTasks(context)
             if (tasks.isEmpty()) {
-                views.setTextViewText(R.id.widget_task_title, "No active tasks 🎉")
+                views.setTextViewText(R.id.widget_task_title, "No active tasks!")
                 views.setTextViewText(R.id.widget_task_date, "")
             } else {
                 // Clamp index in case tasks were deleted
