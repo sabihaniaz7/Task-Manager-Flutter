@@ -29,7 +29,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Home screen widget -->
+        <!-- Home screen widget  - Tasks-->
         <receiver
             android:name=".TaskWidgetProvider"
             android:exported="true">
@@ -42,7 +42,19 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/task_widget_info"/>
         </receiver>
-
+        <!-- Home screen widget - Tracker -->
+        <receiver
+            android:name=".TrackerWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+                <action android:name="com.example.taskmanager.TRACKER_WIDGET_PREV"/>
+                <action android:name="com.example.taskmanager.TRACKER_WIDGET_NEXT"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/tracker_widget_info"/>
+        </receiver>
         <!-- Notification receivers -->
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"

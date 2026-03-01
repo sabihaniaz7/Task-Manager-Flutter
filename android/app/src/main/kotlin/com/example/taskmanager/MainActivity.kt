@@ -10,21 +10,26 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.example.taskmanager/widget"
 
-    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+       override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
             .setMethodCallHandler { call, result ->
-                if (call.method == "refreshWidget") {
-                    refreshAllWidgets()
-                    result.success(null)
-                } else {
-                    result.notImplemented()
+                when (call.method) {
+                    "refreshWidget" -> {
+                        refreshTaskWidgets()
+                        result.success(null)
+                    }
+                    "refreshTrackerWidget" -> {
+                        refreshTrackerWidgets()
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
                 }
             }
     }
 
-    private fun refreshAllWidgets() {
+    private fun refreshTaskWidgets() {
         val manager = AppWidgetManager.getInstance(this)
         val ids = manager.getAppWidgetIds(
             ComponentName(this, TaskWidgetProvider::class.java)
@@ -35,6 +40,16 @@ class MainActivity : FlutterActivity() {
         // MIUI launcher's broadcast queue cache so update is instant
         for (id in ids) {
             TaskWidgetProvider.updateWidget(this, manager, id)
+        }
+    }
+        private fun refreshTrackerWidgets() {
+        val manager = AppWidgetManager.getInstance(this)
+        val ids = manager.getAppWidgetIds(
+            ComponentName(this, TrackerWidgetProvider::class.java)
+        )
+        if (ids.isEmpty()) return
+        for (id in ids) {
+            TrackerWidgetProvider.updateWidget(this, manager, id)
         }
     }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:taskmanager/models/tracker.dart';
+import 'package:taskmanager/services/notification_service.dart';
 import 'package:taskmanager/utils/app_theme.dart';
 import 'package:uuid/uuid.dart';
 
@@ -9,9 +11,11 @@ import 'package:uuid/uuid.dart';
 class TrackerProvider extends ChangeNotifier {
   /// Key used for storing tracking entries in SharedPreferences.
   static const _storageKey = 'tracking_entries';
+  static const _widgetChannel = MethodChannel('com.example.taskmanager/widget');
 
   /// Utility for generating unique identifiers.
   final _uuid = const Uuid();
+  final _notifications = NotificationService();
 
   /// List of all tracker entries (including archived ones).
   List<Tracker> _entries = [];
@@ -28,6 +32,12 @@ class TrackerProvider extends ChangeNotifier {
 
   /// Returns true if the provider is currently loading data.
   bool get isLoading => _isLoading;
+
+  Future<void> _refreshWidget() async {
+    try {
+      await _widgetChannel.invokeMethod('refreshTrackerWidget');
+    } catch (_) {}
+  }
 
   /// Loads tracking data from [SharedPreferences].
   Future<void> loadTrackingData() async {
@@ -48,6 +58,7 @@ class TrackerProvider extends ChangeNotifier {
       _storageKey,
       _entries.map((t) => t.toJsonString()).toList(),
     );
+    await _refreshWidget();
   }
 
   /// Determines the next available color index from the palette to ensure variety.
