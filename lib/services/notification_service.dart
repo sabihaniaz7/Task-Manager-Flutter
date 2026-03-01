@@ -137,8 +137,8 @@ class NotificationService {
 
     await _scheduleNotification(
       id: task.notificationStartId,
-      title: '✅ Task Created',
-      body: '"${task.title}" — due ${_formatDate(task.endDate)}',
+      title: 'Task Manager',
+      body: '"${task.title}" — Due ${_formatDate(task.endDate)}',
       scheduledDate: creationNotifyTime,
     );
     if (task.reminderMode == ReminderMode.none) return;
@@ -159,7 +159,7 @@ class NotificationService {
         if (remind.isAfter(now)) {
           await _scheduleNotification(
             id: task.notificationReminderId,
-            title: '⏰ Task Due Today!',
+            title: 'Task Due Today!',
             body: '"${task.title}" is due today.',
             scheduledDate: remind,
           );
@@ -178,7 +178,7 @@ class NotificationService {
         if (remind.isAfter(now)) {
           await _scheduleNotification(
             id: task.notificationReminderId,
-            title: '⏰ Due Tomorrow!',
+            title: 'Due Tomorrow!',
             body: '"${task.title}" is due tomorrow.',
             scheduledDate: remind,
           );
@@ -197,7 +197,7 @@ class NotificationService {
           if (remind.isAfter(now)) {
             await _scheduleNotification(
               id: task.notificationReminderId + i,
-              title: i == days ? '⏰ Task Due Today!' : '⏰ Task Reminder',
+              title: i == days ? 'Task Due Today!' : 'Task Reminder',
               body: i == days
                   ? '"${task.title}" is due today!'
                   : '"${task.title}"  — due ${_formatDate(task.endDate)}.',
@@ -221,7 +221,7 @@ class NotificationService {
         if (remind.isAfter(now)) {
           await _scheduleNotification(
             id: task.notificationReminderId,
-            title: '⏰ Task Due in $daysBefore day${daysBefore > 1 ? "s" : ""}',
+            title: 'Task Due in $daysBefore day${daysBefore > 1 ? "s" : ""}',
             body: '"${task.title}" is due on ${_formatDate(task.endDate)}.',
             scheduledDate: remind,
           );
@@ -291,6 +291,59 @@ class NotificationService {
     // Cancel up to 31 daily IDs (reminderId + 0..30)
     for (int i = 0; i <= 30; i++) {
       await _plugin.cancel(id: task.notificationReminderId + i);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // TRACKER NOTIFICATIONS
+  // ═══════════════════════════════════════════════════════
+  //
+  // Each tracker has one notificationId.
+  // - Creation confirmation fires 3 seconds after save (id)
+  // - If reminderEnabled: 30 daily reminders at
+  //   reminderHour:reminderMinute (ids: id+1 .. id+30)
+  Future<void> scheduleTrackerNotifications(dynamic tracker) async {
+    await cancelTrackerNotifications(tracker);
+    if (!_permissionGranted) return;
+
+    final now = DateTime.now();
+    final id = tracker.notificationId as int;
+
+    // ── Creation confirmation ──
+    await _scheduleNotification(
+      id: id,
+      title: 'Task Manager',
+      body: '"${tracker.title}" — tracking starts today!',
+      scheduledDate: now.add(const Duration(seconds: 3)),
+    );
+
+    if (!(tracker.reminderEnabled as bool)) return;
+
+    final h = tracker.reminderHour as int;
+    final m = tracker.reminderMinute as int;
+
+    // ── Schedule 30 upcoming daily reminders ──
+    int scheduled = 0;
+    for (int i = 0; scheduled < 30; i++) {
+      final day = now.add(Duration(days: i));
+      final remind = DateTime(day.year, day.month, day.day, h, m);
+      if (remind.isAfter(now)) {
+        await _scheduleNotification(
+          id: id + 1 + scheduled,
+          title: 'Task Manager',
+          body: '"${tracker.title}"',
+          scheduledDate: remind,
+        );
+        scheduled++;
+      }
+    }
+  }
+
+  Future<void> cancelTrackerNotifications(dynamic tracker) async {
+    final id = tracker.notificationId as int;
+    await _plugin.cancel(id: id);
+    for (int i = 1; i <= 30; i++) {
+      await _plugin.cancel(id: id + i);
     }
   }
 }

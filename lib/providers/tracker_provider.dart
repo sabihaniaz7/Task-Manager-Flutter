@@ -94,6 +94,7 @@ class TrackerProvider extends ChangeNotifier {
     );
     _entries.add(entry);
     await _save();
+    await _notifications.scheduleTrackerNotifications(entry);
     notifyListeners();
   }
 
@@ -103,6 +104,8 @@ class TrackerProvider extends ChangeNotifier {
     if (i != -1) {
       _entries[i] = entry;
       await _save();
+      await _notifications.cancelTrackerNotifications(entry);
+      await _notifications.scheduleTrackerNotifications(entry);
       notifyListeners();
     }
   }
@@ -119,6 +122,8 @@ class TrackerProvider extends ChangeNotifier {
 
   /// Deletes a tracker entry permanently.
   Future<void> deleteEntry(String id) async {
+    final entry = _entries.firstWhere((t) => t.id == id);
+    await _notifications.cancelTrackerNotifications(entry);
     _entries.removeWhere((t) => t.id == id);
     await _save();
     notifyListeners();
@@ -128,6 +133,7 @@ class TrackerProvider extends ChangeNotifier {
   Future<void> archiveEntry(String id) async {
     final i = _entries.indexWhere((t) => t.id == id);
     if (i != -1) {
+      await _notifications.cancelTrackerNotifications(_entries[i]);
       _entries[i] = _entries[i].copyWith(isArchived: true);
       await _save();
       notifyListeners();
