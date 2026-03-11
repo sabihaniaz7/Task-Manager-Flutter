@@ -2,18 +2,40 @@ import 'dart:convert';
 
 /// Represents a habit or recurring activity that the user wants to track daily.
 /// Handles logic for completion tracking, streak calculations, and data serialization.
+/// A [Tracker] maintains a list of dates on which the habit was successfully completed.
 class Tracker {
-  final String id; // Unique identifier for the tracker
-  String title; // The name of the habit/task
-  String description; // Optional detailed description
-  int colorIndex; // Index to map to a specific theme color
-  DateTime startDate; // The day the tracking started
-  bool reminderEnabled; // Whether local notifications are enabled
-  int reminderHour; // Hour (0-23) for daily reminder
-  int reminderMinute; // Minute (0-59) for daily reminder
-  bool isArchived; // Whether the tracker is hidden from active view
-  List<String> completedDates; // List of completed dates in 'yyyy-MM-dd' format
-  int notificationId; // ID used for scheduling local notifications
+  /// Unique identifier for the tracker.
+  final String id;
+
+  /// The name or title of the habit/task.
+  String title;
+
+  /// An optional detailed description of the habit.
+  String description;
+
+  /// Index to map to a specific theme color from the [AppTheme].
+  int colorIndex;
+
+  /// The date when tracking for this habit first began.
+  DateTime startDate;
+
+  /// Whether local notifications are enabled for this habit.
+  bool reminderEnabled;
+
+  /// Hour (0-23) at which the daily reminder notification should be triggered.
+  int reminderHour;
+
+  /// Minute (0-59) at which the daily reminder notification should be triggered.
+  int reminderMinute;
+
+  /// Whether the tracker is archived (hidden from the active view).
+  bool isArchived;
+
+  /// List of completed dates stored as strings in 'yyyy-MM-dd' format.
+  List<String> completedDates;
+
+  /// Unique notification ID used for scheduling local notifications for this tracker.
+  int notificationId;
 
   Tracker({
     required this.id,
@@ -32,13 +54,15 @@ class Tracker {
   // -----------Date Key Helpers-----------
 
   /// Formats a [DateTime] into a standard key string ('yyyy-MM-dd') used for storage.
+  ///
+  /// This ensures consistent date comparison regardless of time components.
   static String dateKey(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
-  /// Checks if the habit was completed on a specific [date].
+  /// Checks if the habit was marked as completed on a specific [date].
   bool isDayOn(DateTime date) => completedDates.contains(dateKey(date));
 
-  /// Checks if the habit is already completed for today.
+  /// Checks if the habit is already marked as completed for today.
   bool get isDoneToday => isDayOn(DateTime.now());
 
   // ── Streak: done / total days since start ────────────
@@ -51,10 +75,12 @@ class Tracker {
     return today.difference(start).inDays + 1;
   }
 
-  /// Total count of days the habit was successfully completed.
+  /// The total count of unique days the habit was successfully completed.
   int get doneDays => completedDates.length;
 
   /// Calculates the current consecutive completion streak ending today or yesterday.
+  ///
+  /// A streak is active if today is completed, or if yesterday was completed and today is not yet over.
   int get currentStreak {
     int streak = 0;
     final now = DateTime.now();
@@ -75,8 +101,13 @@ class Tracker {
 
   // ── UI Data Helpers ───────────────────────────────────
 
-  /// Generates data for the last 7 days for the collapsed card preview.
-  /// Returns list of maps containing date and status flags.
+  /// Generates data for the last 7 days for condensed card previews.
+  ///
+  /// Returns a list of maps, each containing:
+  /// - 'date': the [DateTime] for that day.
+  /// - 'done': whether it's marked as complete.
+  /// - 'isBeforeStart': whether the date is before the tracking [startDate].
+  /// - 'isFuture': whether the date is after the current time.
   List<Map<String, dynamic>> get last7Days {
     final now = DateTime.now();
     final start = DateTime(startDate.year, startDate.month, startDate.day);
@@ -96,8 +127,9 @@ class Tracker {
     });
   }
 
-  /// Generates a full list of all days from the start date up to today.
-  /// Used for the detailed calendar view (clamped to 365 days max).
+  /// Generates a full list of all days from the [startDate] up to today.
+  ///
+  /// Used for detailed calendar views. Clamped to a maximum of 365 days.
   List<Map<String, dynamic>> get calendarDays {
     final now = DateTime.now();
     final start = DateTime(startDate.year, startDate.month, startDate.day);
@@ -109,7 +141,9 @@ class Tracker {
     });
   }
 
-  /// Toggles the completion status for a given [date].
+  /// Toggles the completion status for a specific [date].
+  ///
+  /// Adds the date if missing, or removes it if already present.
   void toggleDate(DateTime date) {
     final key = dateKey(date);
     if (completedDates.contains(key)) {
@@ -150,7 +184,7 @@ class Tracker {
 
   // ── Serialization ──────────────────────────────────────
 
-  /// Converts the [Tracker] instance into a JSON-compatible map.
+  /// Converts the [Tracker] instance into a JSON-compatible map for persistence.
   Map<String, dynamic> toJson() => {
     'id': id,
     'title': title,
@@ -180,9 +214,9 @@ class Tracker {
     notificationId: json['notificationId'] ?? 0,
   );
 
-  /// Converts the [Tracker] instance into a JSON string.
+  /// Encodes the [Tracker] instance into a JSON string.
   String toJsonString() => jsonEncode(toJson());
 
-  /// Creates a [Tracker] instance from a JSON string.
+  /// Decodes a JSON string into a [Tracker] object.
   factory Tracker.fromJsonString(String s) => Tracker.fromJson(jsonDecode(s));
 }

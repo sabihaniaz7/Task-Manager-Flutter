@@ -7,6 +7,11 @@ import 'package:taskmanager/screens/home_screen.dart';
 import 'package:taskmanager/screens/tracker_screen.dart';
 import 'package:taskmanager/utils/app_theme.dart';
 
+/// The root-level screen that manages the application shell.
+///
+/// It handles top-level navigation between [HomeScreen] and [TrackerScreen]
+/// via a [PageView] and a custom bottom navigation bar. It also provides
+/// a shared header with theme toggling and sorting capabilities.
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -18,9 +23,10 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   late final PageController _pageController;
 
+  /// Global key to access the state of [TrackerScreen] for triggering its sort sheet.
   final _trackerKey = GlobalKey<TrackerScreenState>();
 
-  // Titles and subtitles per screen
+  // Configuration for the shared header.
   static const _titles = ['Task Manager', 'Tracker'];
   static const _subtitles = ['Stay organized.', 'Build consistent habits.'];
 
@@ -30,6 +36,7 @@ class _MainScreenState extends State<MainScreen> {
     _pageController = PageController(initialPage: _currentIndex);
   }
 
+  /// Switches the active tab and animates the [PageView] to the corresponding screen.
   void _onTabChanged(int index) {
     setState(() => _currentIndex = index);
     _pageController.animateToPage(
@@ -39,6 +46,7 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  /// Navigates to the appropriate creation screen based on the current tab.
   void _onAddPressed() {
     Navigator.push(
       context,
@@ -50,6 +58,7 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  /// Displays the task sorting bottom sheet.
   void _showSortSheet(BuildContext context) {
     final provider = context.read<TaskProvider>();
     showModalBottomSheet(
@@ -77,7 +86,7 @@ class _MainScreenState extends State<MainScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Handle
+                // Visual drag handle
                 Container(
                   width: 40,
                   height: 4,
@@ -206,7 +215,7 @@ class _MainScreenState extends State<MainScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── Shared header ──────────────────────────
+            // Shared header row (Title, Subtitle, Theme Toggle, Sort)
             _SharedHeader(
               currentIndex: _currentIndex,
               titles: _titles,
@@ -217,14 +226,15 @@ class _MainScreenState extends State<MainScreen> {
                   ? () => _showSortSheet(context)
                   : () => _trackerKey.currentState?.showSortSheet(context),
             ),
-            // ── Swipeable pages ────────────────────────
+
+            // Swipeable content pages
             Expanded(
               child: PageView(
                 controller: _pageController,
                 physics: const ClampingScrollPhysics(),
                 onPageChanged: (i) => setState(() => _currentIndex = i),
                 children: [
-                  HomeScreen(),
+                  const HomeScreen(),
                   TrackerScreen(key: _trackerKey),
                 ],
               ),
@@ -233,7 +243,7 @@ class _MainScreenState extends State<MainScreen> {
         ),
       ),
 
-      // Bottom nav
+      // Custom floating bottom navigation bar
       bottomNavigationBar: _BottomNav(
         currentIndex: _currentIndex,
         onTabChanged: _onTabChanged,
@@ -247,14 +257,16 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
-// ── Shared animated header ─────────────────────────────────
+/// A shared header component used across all main screens.
+///
+/// Features internal animations for title and subtitle transitions.
 class _SharedHeader extends StatelessWidget {
   final int currentIndex;
   final List<String> titles;
   final List<String> subtitles;
   final bool isDark;
   final VoidCallback onToggleTheme;
-  final VoidCallback? onSort; // null on Tracker screen
+  final VoidCallback? onSort;
 
   const _SharedHeader({
     required this.currentIndex,
@@ -279,7 +291,7 @@ class _SharedHeader extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // ── Animated title + subtitle ──────────────
+          // Animated text identity
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -315,14 +327,13 @@ class _SharedHeader extends StatelessWidget {
             ),
           ),
 
-          // ── Theme toggle ───────────────────────────
+          // Utility buttons (Theme and Sort)
           _HeaderIconButton(
             icon: isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
             onTap: onToggleTheme,
           ),
           const SizedBox(width: AppSizes.spacingXS),
 
-          // ── Sort (only on Tasks screen) ────────────
           AnimatedOpacity(
             opacity: onSort != null ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 200),
@@ -340,7 +351,7 @@ class _SharedHeader extends StatelessWidget {
   }
 }
 
-// ── Reusable header icon button ────────────────────────────
+/// A reusable square icon button used in the shared header.
 class _HeaderIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
@@ -370,7 +381,7 @@ class _HeaderIconButton extends StatelessWidget {
   }
 }
 
-// Custom NavBar
+/// A custom bottom navigation bar with a floating action button in the center.
 class _BottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTabChanged;
@@ -379,6 +390,7 @@ class _BottomNav extends StatelessWidget {
   final Color inactiveColor;
   final Color activeColor;
   final bool isDark;
+
   const _BottomNav({
     required this.currentIndex,
     required this.onTabChanged,
@@ -388,20 +400,19 @@ class _BottomNav extends StatelessWidget {
     required this.activeColor,
     required this.isDark,
   });
+
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
 
     return Container(
-      // Outer padding for floating effect
       padding: EdgeInsets.fromLTRB(16, 0, 16, bottomInset + 12),
-      // padding: const EdgeInsets.symmetric(horizontal: 16),
       color: Colors.transparent,
       child: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.topCenter,
         children: [
-          // Nav Bar Background
+          // Background container with tabs
           Container(
             height: 64,
             decoration: BoxDecoration(
@@ -417,7 +428,6 @@ class _BottomNav extends StatelessWidget {
             ),
             child: Row(
               children: [
-                //Tasks Tab
                 Expanded(
                   child: _NavItem(
                     icon: Icons.task_alt_rounded,
@@ -428,9 +438,7 @@ class _BottomNav extends StatelessWidget {
                     isActive: currentIndex == 0,
                   ),
                 ),
-                // Center space for FAB
-                const SizedBox(width: 72),
-                //Tracker Tab
+                const SizedBox(width: 72), // Space for floating center button
                 Expanded(
                   child: _NavItem(
                     icon: Icons.show_chart_rounded,
@@ -444,7 +452,8 @@ class _BottomNav extends StatelessWidget {
               ],
             ),
           ),
-          // Center FAB above nav
+
+          // Floating Action Button
           Positioned(
             top: -20,
             child: GestureDetector(
@@ -480,6 +489,7 @@ class _BottomNav extends StatelessWidget {
   }
 }
 
+/// Individual navigation item for the custom bottom bar.
 class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -496,6 +506,7 @@ class _NavItem extends StatelessWidget {
     required this.onTap,
     required this.isActive,
   });
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(

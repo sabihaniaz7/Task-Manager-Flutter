@@ -3,6 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:taskmanager/providers/tracker_provider.dart';
 import 'package:taskmanager/utils/app_theme.dart';
 
+/// A screen for creating a new [Tracker] (habit/goal).
+///
+/// Users can define a title, optional description, and configure
+/// a recurring daily notification reminder for the habit.
 class AddTrackerScreen extends StatefulWidget {
   const AddTrackerScreen({super.key});
 
@@ -14,6 +18,7 @@ class _AddTrackerScreenState extends State<AddTrackerScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+
   bool _reminderEnabled = false;
   TimeOfDay _reminderTime = const TimeOfDay(hour: 9, minute: 0);
   bool _isSaving = false;
@@ -25,6 +30,7 @@ class _AddTrackerScreenState extends State<AddTrackerScreen> {
     super.dispose();
   }
 
+  /// Formats the [TimeOfDay] into a human-readable 12-hour format (e.g., "9:00 AM").
   String _formatTime(TimeOfDay time) {
     final h = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
     final m = time.minute.toString().padLeft(2, '0');
@@ -32,33 +38,44 @@ class _AddTrackerScreenState extends State<AddTrackerScreen> {
     return '$h:$m $period';
   }
 
+  /// Opens the system time picker to select a reminder time.
   Future<void> _pickTime() async {
     final picked = await showTimePicker(
       context: context,
       initialTime: _reminderTime,
     );
-    if (picked != null) setState(() => _reminderTime = picked);
+    if (picked != null) {
+      setState(() => _reminderTime = picked);
+    }
   }
 
+  /// Validates the form and saves the new tracker via [TrackerProvider].
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+
     setState(() => _isSaving = true);
 
-    await context.read<TrackerProvider>().addEntry(
-      title: _titleController.text.trim(),
-      description: _descriptionController.text.trim(),
-      reminderEnabled: _reminderEnabled,
-      reminderHour: _reminderTime.hour,
-      reminderMinute: _reminderTime.minute,
-    );
+    try {
+      await context.read<TrackerProvider>().addEntry(
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        reminderEnabled: _reminderEnabled,
+        reminderHour: _reminderTime.hour,
+        reminderMinute: _reminderTime.minute,
+      );
 
-    if (mounted) Navigator.pop(context);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      setState(() => _isSaving = false);
+      // Optional: Show error scaffold
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -66,14 +83,14 @@ class _AddTrackerScreenState extends State<AddTrackerScreen> {
           style: theme.textTheme.titleMedium?.copyWith(fontSize: 18),
         ),
         leading: IconButton(
-          icon: Icon(Icons.close_rounded),
+          icon: const Icon(Icons.close_rounded),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const .all(AppSizes.spacingXL),
+          padding: const EdgeInsets.all(AppSizes.spacingXL),
           children: [
             const SizedBox(height: AppSizes.spacingS),
             _label(context, 'TITLE *'),
@@ -83,8 +100,9 @@ class _AddTrackerScreenState extends State<AddTrackerScreen> {
               autofocus: false,
               style: theme.textTheme.titleMedium,
               textCapitalization: TextCapitalization.sentences,
-
-              decoration: InputDecoration(hintText: 'Drink water, Exercise...'),
+              decoration: const InputDecoration(
+                hintText: 'Drink water, Exercise...',
+              ),
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Title is required' : null,
             ),
@@ -97,161 +115,172 @@ class _AddTrackerScreenState extends State<AddTrackerScreen> {
               style: theme.textTheme.bodyMedium,
               textCapitalization: TextCapitalization.sentences,
               maxLines: 2,
-              decoration: InputDecoration(hintText: 'Optional Details...'),
+              decoration: const InputDecoration(
+                hintText: 'Optional Details...',
+              ),
             ),
             const SizedBox(height: AppSizes.spacingL),
-            // Reminder Section
+
+            // Reminder Configuration Section
             _label(context, 'DAILY REMINDER'),
             const SizedBox(height: AppSizes.spacingS),
-            Container(
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                borderRadius: BorderRadius.circular(AppSizes.radiusButton),
-                border: Border.all(
-                  color: _reminderEnabled
-                      ? theme.colorScheme.primary.withValues(alpha: 0.35)
-                      : theme.dividerColor,
-                  width: _reminderEnabled ? 1.5 : 1,
-                ),
-              ),
+            _reminderConfigCard(context, theme, isDark),
 
-              child: Column(
-                mainAxisSize: .min,
-                children: [
-                  Padding(
-                    padding: const .symmetric(
-                      horizontal: AppSizes.spacingL,
-                      vertical: AppSizes.spacingM,
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 34,
-                          height: 34,
-                          decoration: BoxDecoration(
-                            color: _reminderEnabled
-                                ? theme.colorScheme.primary.withValues(
-                                    alpha: 0.1,
-                                  )
-                                : theme.dividerColor.withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(
-                              AppSizes.radiusSmall,
-                            ),
-                          ),
-                          child: Icon(
-                            Icons.notifications_rounded,
-                            size: 18,
-                            color: _reminderEnabled
-                                ? theme.colorScheme.primary
-                                : theme.textTheme.labelSmall?.color,
-                          ),
-                        ),
-                        const SizedBox(width: AppSizes.spacingM),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: .start,
-                            children: [
-                              Text(
-                                'Daily Reminder',
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontSize: 14,
-                                ),
-                              ),
+            const SizedBox(height: AppSizes.spacingXL),
 
-                              Text(
-                                _reminderEnabled
-                                    ? 'Every day at ${_formatTime(_reminderTime)}'
-                                    : 'Tap to enable',
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: _reminderEnabled
-                                      ? theme.colorScheme.primary.withValues(
-                                          alpha: 0.8,
-                                        )
-                                      : null,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Switch.adaptive(
-                          value: _reminderEnabled,
-                          onChanged: (v) =>
-                              setState(() => _reminderEnabled = v),
-                          activeThumbColor: theme.colorScheme.primary,
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_reminderEnabled) ...[
-                    Divider(height: 1, color: theme.dividerColor),
-                    GestureDetector(
-                      onTap: _pickTime,
-                      child: Padding(
-                        padding: const .symmetric(
-                          horizontal: AppSizes.spacingL,
-                          vertical: AppSizes.spacingM,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.access_time_rounded,
-                              size: 16,
-                              color: theme.colorScheme.primary,
-                            ),
-                            const SizedBox(width: AppSizes.spacingS),
-                            Text(
-                              _formatTime(_reminderTime),
-                              style: theme.textTheme.titleMedium,
-                            ),
-                            const Spacer(),
-                            Text(
-                              'Tap to change',
-                              style: theme.textTheme.labelSmall,
-                            ),
-                            Icon(
-                              Icons.chevron_right_rounded,
-                              size: 18,
-                              color: theme.textTheme.labelSmall?.color,
-                            ),
-                          ],
+            // Save Button
+            _saveButton(theme, isDark),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Builds the interactive card for enabling and configuring daily reminders.
+  Widget _reminderConfigCard(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        borderRadius: BorderRadius.circular(AppSizes.radiusButton),
+        border: Border.all(
+          color: _reminderEnabled
+              ? theme.colorScheme.primary.withValues(alpha: 0.35)
+              : theme.dividerColor,
+          width: _reminderEnabled ? 1.5 : 1,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSizes.spacingL,
+              vertical: AppSizes.spacingM,
+            ),
+            child: Row(
+              children: [
+                _reminderIcon(theme),
+                const SizedBox(width: AppSizes.spacingM),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Daily Reminder',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontSize: 14,
                         ),
                       ),
+                      Text(
+                        _reminderEnabled
+                            ? 'Every day at ${_formatTime(_reminderTime)}'
+                            : 'Tap to enable',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: _reminderEnabled
+                              ? theme.colorScheme.primary.withValues(alpha: 0.8)
+                              : null,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch.adaptive(
+                  value: _reminderEnabled,
+                  onChanged: (v) => setState(() => _reminderEnabled = v),
+                  activeThumbColor: theme.colorScheme.primary,
+                ),
+              ],
+            ),
+          ),
+          if (_reminderEnabled) ...[
+            Divider(height: 1, color: theme.dividerColor),
+            GestureDetector(
+              onTap: _pickTime,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.spacingL,
+                  vertical: AppSizes.spacingM,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.access_time_rounded,
+                      size: 16,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: AppSizes.spacingS),
+                    Text(
+                      _formatTime(_reminderTime),
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const Spacer(),
+                    Text('Tap to change', style: theme.textTheme.labelSmall),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 18,
+                      color: theme.textTheme.labelSmall?.color,
                     ),
                   ],
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSizes.spacingXL),
-            SizedBox(
-              width: double.infinity,
-              height: 54,
-              child: ElevatedButton(
-                onPressed: _isSaving ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: isDark ? AppColors.darkBg : Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppSizes.radiusButton),
-                  ),
-                  elevation: 0,
                 ),
-                child: _isSaving
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text(
-                        'Save',
-                        style: TextStyle(
-                          fontSize: AppSizes.fontTitle,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _reminderIcon(ThemeData theme) {
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        color: _reminderEnabled
+            ? theme.colorScheme.primary.withValues(alpha: 0.1)
+            : theme.dividerColor.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+      ),
+      child: Icon(
+        Icons.notifications_rounded,
+        size: 18,
+        color: _reminderEnabled
+            ? theme.colorScheme.primary
+            : theme.textTheme.labelSmall?.color,
+      ),
+    );
+  }
+
+  Widget _saveButton(ThemeData theme, bool isDark) {
+    return SizedBox(
+      width: double.infinity,
+      height: 54,
+      child: ElevatedButton(
+        onPressed: _isSaving ? null : _save,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: theme.colorScheme.primary,
+          foregroundColor: isDark ? AppColors.darkBg : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.radiusButton),
+          ),
+          elevation: 0,
         ),
+        child: _isSaving
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Text(
+                'Save',
+                style: TextStyle(
+                  fontSize: AppSizes.fontTitle,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
       ),
     );
   }

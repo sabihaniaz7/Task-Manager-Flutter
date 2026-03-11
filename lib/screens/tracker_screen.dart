@@ -4,8 +4,13 @@ import 'package:taskmanager/providers/tracker_provider.dart';
 import 'package:taskmanager/utils/app_theme.dart';
 import 'package:taskmanager/widgets/tracker_card.dart';
 
+/// Available sorting options for the tracker list.
 enum TrackerSortOption { newest, streak, completion }
 
+/// A screen that displays a list of all habit trackers.
+///
+/// It uses [TrackerProvider] to fetch and display [Tracker] entries
+/// and provides functionality to sort them by date, streak, or completion ratio.
 class TrackerScreen extends StatefulWidget {
   const TrackerScreen({super.key});
 
@@ -15,10 +20,13 @@ class TrackerScreen extends StatefulWidget {
 
 class TrackerScreenState extends State<TrackerScreen> {
   TrackerSortOption _sort = TrackerSortOption.newest;
-  // Called from MainScreen via GlobalKey
+
+  /// Publicly accessible method to show the sorting selection sheet.
+  /// Primarily called from [MainScreen]'s shared header.
   void showSortSheet([BuildContext? parentContext]) =>
       _showSortSheet(parentContext);
 
+  /// Sorts and returns a copy of the provided [entries] based on [_sort].
   List _sorted(List entries) {
     final list = List.of(entries);
     switch (_sort) {
@@ -36,6 +44,7 @@ class TrackerScreenState extends State<TrackerScreen> {
     return list;
   }
 
+  /// Displays the tracker sorting bottom sheet.
   void _showSortSheet([BuildContext? parentContext]) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final surface = isDark ? AppColors.darkSurface : AppColors.lightSurface;
@@ -64,7 +73,7 @@ class TrackerScreenState extends State<TrackerScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Handle
+              // Visual drag handle
               Container(
                 width: 40,
                 height: 4,
@@ -177,16 +186,18 @@ class TrackerScreenState extends State<TrackerScreen> {
         if (provider.isLoading) {
           return const Center(child: CircularProgressIndicator());
         }
+
         final entries = _sorted(provider.entries);
         if (entries.isEmpty) {
           return _emptyState(context);
         }
+
         return ListView.separated(
           padding: const EdgeInsets.fromLTRB(
             AppSizes.spacingXL,
             AppSizes.spacingL,
             AppSizes.spacingXL,
-            120,
+            120, // Bottom padding to account for the custom bottom bar
           ),
           itemBuilder: (ctx, i) => TrackerCard(trackerEntry: entries[i]),
           separatorBuilder: (_, _) => const SizedBox(height: AppSizes.spacingM),
@@ -196,6 +207,7 @@ class TrackerScreenState extends State<TrackerScreen> {
     );
   }
 
+  /// Builds a placeholder view when no trackers are present.
   Widget _emptyState(BuildContext context) {
     final theme = Theme.of(context);
     return Center(

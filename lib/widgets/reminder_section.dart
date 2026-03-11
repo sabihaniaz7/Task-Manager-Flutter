@@ -2,17 +2,26 @@ import 'package:flutter/material.dart';
 import '../models/task.dart';
 import '../utils/app_theme.dart';
 
-// ─────────────────────────────────────────────────────────────
-// ReminderSection — self-contained collapsible widget
-// Used in both AddTaskScreen and EditTaskScreen.
-// Caller passes isSingleDay to show the right mode options.
-// ─────────────────────────────────────────────────────────────
-
+/// A self-contained, collapsible widget for configuring task reminders.
+///
+/// Used in both creation and editing screens to allow users to select
+/// [ReminderMode], time, and optional custom lead times.
 class ReminderSection extends StatefulWidget {
+  /// Whether the task is constrained to a single day.
+  ///
+  /// Affects available modes (e.g., 'Daily' is hidden for single-day tasks).
   final bool isSingleDay;
+
+  /// The initial [ReminderMode] to display.
   final ReminderMode initialMode;
+
+  /// The initial time of day for the reminder.
   final TimeOfDay initialTime;
+
+  /// The initial value for custom lead days (e.g., "X days before").
   final int initialCustomDays;
+
+  /// Callback triggered whenever any part of the configuration changes.
   final ValueChanged<ReminderConfig> onChanged;
 
   const ReminderSection({
@@ -28,6 +37,7 @@ class ReminderSection extends StatefulWidget {
   State<ReminderSection> createState() => _ReminderSectionState();
 }
 
+/// A data class representing the current state of the reminder configuration.
 class ReminderConfig {
   final ReminderMode mode;
   final TimeOfDay time;
@@ -65,18 +75,20 @@ class _ReminderSectionState extends State<ReminderSection>
       parent: _controller,
       curve: Curves.easeInOutCubic,
     );
+    // If initially enabled, skip the animation and show expanded.
     if (_enabled) _controller.value = 1.0;
   }
 
   @override
   void didUpdateWidget(ReminderSection old) {
     super.didUpdateWidget(old);
-    // When date changes make the single/multi switch reset mode if needed
+    // Reset to a compatible mode if the task duration type changes.
     if (old.isSingleDay != widget.isSingleDay) {
       _resetModeForDuration();
     }
   }
 
+  /// Ensures the selected mode remains valid for the current task duration.
   void _resetModeForDuration() {
     if (widget.isSingleDay &&
         (_mode == ReminderMode.onceDayBefore ||
@@ -96,11 +108,12 @@ class _ReminderSectionState extends State<ReminderSection>
     super.dispose();
   }
 
+  /// Toggles the entire reminder feature on or off.
   void _toggle(bool val) {
     setState(() {
       _enabled = val;
       if (_enabled) {
-        // Pick sensible default for current duration type
+        // Set a sensible default mode when enabling.
         _mode = widget.isSingleDay
             ? ReminderMode.onDueDate
             : ReminderMode.onceDayBefore;
@@ -113,6 +126,7 @@ class _ReminderSectionState extends State<ReminderSection>
     _emit();
   }
 
+  /// Notifies the parent widget of the current configuration.
   void _emit() {
     widget.onChanged(
       ReminderConfig(
@@ -123,6 +137,7 @@ class _ReminderSectionState extends State<ReminderSection>
     );
   }
 
+  /// Displays the native time picker and updates the state.
   Future<void> _pickTime() async {
     final picked = await showTimePicker(
       context: context,
@@ -138,6 +153,7 @@ class _ReminderSectionState extends State<ReminderSection>
     }
   }
 
+  /// Helper to format [TimeOfDay] into a localized string (e.g., "9:00 AM").
   String _formatTime(TimeOfDay t) {
     final h = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
     final m = t.minute.toString().padLeft(2, '0');
@@ -164,7 +180,7 @@ class _ReminderSectionState extends State<ReminderSection>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── Header row: icon + label + toggle ──
+          // Header Row: Toggle and basic summary.
           Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSizes.spacingL,
@@ -172,51 +188,9 @@ class _ReminderSectionState extends State<ReminderSection>
             ),
             child: Row(
               children: [
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: _enabled
-                        ? theme.colorScheme.primary.withValues(alpha: 0.1)
-                        : theme.dividerColor.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
-                  ),
-                  child: Icon(
-                    Icons.notifications_rounded,
-                    size: 18,
-                    color: _enabled
-                        ? theme.colorScheme.primary
-                        : theme.textTheme.labelSmall?.color,
-                  ),
-                ),
+                _headerIcon(theme),
                 const SizedBox(width: AppSizes.spacingM),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Reminder',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontSize: AppSizes.fontBody + 1,
-                        ),
-                      ),
-                      if (!_enabled)
-                        Text(
-                          'Tap to set a reminder',
-                          style: theme.textTheme.labelSmall,
-                        ),
-                      if (_enabled)
-                        Text(
-                          _summaryText(),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.primary.withValues(
-                              alpha: 0.8,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
+                Expanded(child: _headerText(theme)),
                 Switch.adaptive(
                   value: _enabled,
                   onChanged: _toggle,
@@ -226,7 +200,7 @@ class _ReminderSectionState extends State<ReminderSection>
             ),
           ),
 
-          // ── Expandable body ──
+          // Expandable settings body.
           SizeTransition(
             sizeFactor: _expandAnim,
             child: Column(
@@ -234,30 +208,22 @@ class _ReminderSectionState extends State<ReminderSection>
               children: [
                 Divider(height: 1, color: theme.dividerColor),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSizes.spacingL,
-                    AppSizes.spacingM,
-                    AppSizes.spacingL,
-                    AppSizes.spacingL,
-                  ),
+                  padding: const EdgeInsets.all(AppSizes.spacingL),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // ── Mode selector ──
                       Text(
                         'WHEN TO REMIND',
                         style: theme.textTheme.labelMedium,
                       ),
                       const SizedBox(height: AppSizes.spacingS),
                       _modeSelector(theme),
-                      // ── Custom days input (only for customDays mode) ──
                       if (_mode == ReminderMode.customDays) ...[
                         const SizedBox(height: AppSizes.spacingM),
                         _customDaysRow(theme),
                       ],
                       const SizedBox(height: AppSizes.spacingL),
-                      // ── Time picker ──
                       Text('AT WHAT TIME', style: theme.textTheme.labelMedium),
                       const SizedBox(height: AppSizes.spacingS),
                       _timeTile(theme),
@@ -272,7 +238,50 @@ class _ReminderSectionState extends State<ReminderSection>
     );
   }
 
-  // ── Mode chips ────────────────────────────────────────────
+  Widget _headerIcon(ThemeData theme) {
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        color: _enabled
+            ? theme.colorScheme.primary.withValues(alpha: 0.1)
+            : theme.dividerColor.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+      ),
+      child: Icon(
+        Icons.notifications_rounded,
+        size: 18,
+        color: _enabled
+            ? theme.colorScheme.primary
+            : theme.textTheme.labelSmall?.color,
+      ),
+    );
+  }
+
+  Widget _headerText(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Reminder',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontSize: AppSizes.fontBody + 1,
+          ),
+        ),
+        if (!_enabled)
+          Text('Tap to set a reminder', style: theme.textTheme.labelSmall),
+        if (_enabled)
+          Text(
+            _summaryText(),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.primary.withValues(alpha: 0.8),
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// Builds a selection of chips for different reminder schedules.
   Widget _modeSelector(ThemeData theme) {
     final modes = widget.isSingleDay
         ? [
@@ -307,6 +316,7 @@ class _ReminderSectionState extends State<ReminderSection>
     );
   }
 
+  /// Internal helper to build an individual mode selection chip.
   Widget _modeChip(ThemeData theme, _ModeOption opt) {
     final isSelected = _mode == opt.mode;
     return GestureDetector(
@@ -357,7 +367,7 @@ class _ReminderSectionState extends State<ReminderSection>
     );
   }
 
-  // ── Custom days stepper ───────────────────────────────────
+  /// Builds the numeric stepper for selecting custom lead days.
   Widget _customDaysRow(ThemeData theme) {
     return Row(
       children: [
@@ -416,7 +426,7 @@ class _ReminderSectionState extends State<ReminderSection>
     );
   }
 
-  // ── Time tile ─────────────────────────────────────────────
+  /// Builds the interactive tile that opens the time picker.
   Widget _timeTile(ThemeData theme) {
     final isDark = theme.brightness == Brightness.dark;
     return GestureDetector(
@@ -456,7 +466,7 @@ class _ReminderSectionState extends State<ReminderSection>
     );
   }
 
-  // ── Summary text shown in collapsed header ─────────────────
+  /// Generates a human-friendly summary of the current settings for the header.
   String _summaryText() {
     final timeStr = _formatTime(_time);
     switch (_mode) {
@@ -474,6 +484,7 @@ class _ReminderSectionState extends State<ReminderSection>
   }
 }
 
+/// Metadata for a specific reminder mode option.
 class _ModeOption {
   final ReminderMode mode;
   final String label;

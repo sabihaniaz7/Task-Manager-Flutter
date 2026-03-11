@@ -3,6 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:taskmanager/screens/main_screen.dart';
 import 'package:taskmanager/utils/app_theme.dart';
 
+/// The initial screen shown when the app launches.
+///
+/// It displays the app's logo/title and developer credits with smooth
+/// fade and slide animations before transitioning to the [MainScreen].
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -13,44 +17,59 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+  
+  /// Animation for the main app title and subtitle fade-in.
   late Animation<double> _fadeAnimation;
+  
+  /// Animation for the main app title and subtitle sliding up.
   late Animation<Offset> _slideAnimation;
+  
+  /// Animation for the developer credit text fade-in.
   late Animation<double> _creditFadeAnimation;
 
   @override
   void initState() {
     super.initState();
-    // Hide status bar for full immersive splash
+    
+    // Hide status bar for a clean, immersive splash experience.
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+    
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
     );
-    // App names fades + slide up
+
+    // Initial fade for the app name and slogan.
     _fadeAnimation = CurvedAnimation(
       parent: _controller,
       curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
     );
 
-    _slideAnimation =
-        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _controller,
-            curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
-          ),
-        );
-    //credit fade in slighlty after
+    // Subtle upward slide effect for the app name.
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+      ),
+    );
+
+    // Fade in the developer credits slightly after the main title.
     _creditFadeAnimation = CurvedAnimation(
       parent: _controller,
       curve: const Interval(0.4, 1.0, curve: Curves.easeOut),
     );
+    
     _controller.forward();
 
-    // Navigate after 2.5s
+    // Schedule navigation to the main application screen after the animations.
     Future.delayed(const Duration(milliseconds: 2500), () {
       if (mounted) {
-        // Restore system UI
+        // Restore standard system UI (status bar and navigation bar).
         SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+        
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
             pageBuilder: (_, _, _) => const MainScreen(),
@@ -74,11 +93,12 @@ class _SplashScreenState extends State<SplashScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark ? AppColors.darkBg : AppColors.lightBg;
     final primary = Theme.of(context).colorScheme.primary;
+    
     return Scaffold(
       backgroundColor: bg,
       body: Stack(
         children: [
-          // ── Subtle background glow ──────────────────
+          // ── Subtle background glow (Top-Left) ──────────────────
           Positioned(
             top: -100,
             left: -80,
@@ -97,6 +117,8 @@ class _SplashScreenState extends State<SplashScreen>
               ),
             ),
           ),
+          
+          // ── Subtle background glow (Bottom-Right) ──────────────────
           Positioned(
             bottom: -120,
             right: -60,
@@ -115,7 +137,8 @@ class _SplashScreenState extends State<SplashScreen>
               ),
             ),
           ),
-          // Center : App Name
+          
+          // ── Center: App Branding ───────────────────────────────
           Center(
             child: AnimatedBuilder(
               animation: _controller,
@@ -126,27 +149,6 @@ class _SplashScreenState extends State<SplashScreen>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // App icon placeholder — replace with icon later
-                      // Container(
-                      //   width: 72,
-                      //   height: 72,
-                      //   decoration: BoxDecoration(
-                      //     color: primary.withValues(alpha: 0.12),
-                      //     borderRadius: BorderRadius.circular(
-                      //       AppSizes.radiusCard,
-                      //     ),
-                      //     border: Border.all(
-                      //       color: primary.withValues(alpha: 0.2),
-                      //       width: 1.5,
-                      //     ),
-                      //   ),
-                      //   child: Icon(
-                      //     Icons.task_alt_rounded,
-                      //     size: 40,
-                      //     color: primary,
-                      //   ),
-                      // ),
-                      // const SizedBox(height: AppSizes.spacingXL),
                       Text(
                         'Task Manager',
                         style: TextStyle(
@@ -176,7 +178,8 @@ class _SplashScreenState extends State<SplashScreen>
               ),
             ),
           ),
-          //
+          
+          // ── Bottom: Credits ──────────────────────────────────
           Positioned(
             bottom: 48,
             left: 0,
@@ -220,3 +223,4 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 }
+

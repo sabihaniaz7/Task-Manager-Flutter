@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Defines the color palette and utility methods for color selection across the app.
 class AppColors {
+  /// A collection of pastel colors used for task and habit tracker cards.
   static const List<int> cardPalette = [
     0xFFD8ECFF,
     0xFFFFF3C4,
@@ -12,6 +14,7 @@ class AppColors {
     0xFFD8F5F2,
   ];
 
+  // Light Mode Colors
   static const lightBg = Color(0xFFF2F3F7);
   static const lightSurface = Color(0xFFFFFFFF);
   static const lightPrimary = Color(0xFF1C1C2E);
@@ -19,6 +22,7 @@ class AppColors {
   static const lightSubtext = Color(0xFF9098A8);
   static const lightDivider = Color(0xFFE4E6EE);
 
+  // Dark Mode Colors
   static const darkBg = Color(0xFF0F0F18);
   static const darkSurface = Color(0xFF1A1A28);
   static const darkPrimary = Color(0xFFF0F0FF);
@@ -26,31 +30,33 @@ class AppColors {
   static const darkSubtext = Color(0xFF70728A);
   static const darkDivider = Color(0xFF252538);
 
+  // Semantic Colors
   static const success = Color(0xFF4CAF82);
   static const danger = Color(0xFFE05555);
   static const warning = Color(0xFFE8A030);
 
-  // ── Text colors that sit ON the card ──────────────────────
-  // Since card bg is a light pastel (light mode) or dark tint (dark mode),
-  // we use the theme's primary text color — it always contrasts fine.
+  /// Selects an appropriate title color that contrasts with the card background.
+  /// 
+  /// Fades the color slightly if [isCompleted] is true.
   static Color titleColor(BuildContext context, bool isCompleted) {
     final theme = Theme.of(context);
     final color = theme.textTheme.titleMedium!.color!;
     return isCompleted ? color.withValues(alpha: 0.45) : color;
   }
 
+  /// Selects a body text color based on the current theme brightness.
   static Color bodyColor(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    // Slightly more visible than default bodyMedium on colored cards
     return isDark ? const Color(0xFF9899B8) : const Color(0xFF5A6070);
   }
 
+  /// Selects a date text color based on the current theme brightness.
   static Color dateColor(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return isDark ? const Color(0xFF6870A0) : const Color(0xFF8890A8);
   }
 
-  // use a semi-transparent overlay that always contrasts
+  /// Selects a background color for interactive action buttons on cards.
   static Color actionBg(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return isDark
@@ -58,24 +64,29 @@ class AppColors {
         : Colors.black.withValues(alpha: 0.06);
   }
 
+  /// Selects an icon color for actions based on the current theme brightness.
   static Color actionIconColor(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return isDark ? const Color(0xFFBBBDD0) : const Color(0xFF50586A);
   }
 
+  /// Selects a subtext color based on the current theme brightness.
   static Color subtextColor(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return isDark ? const Color(0xFF8890B0) : const Color(0xFF606878);
   }
 }
 
+/// Centralizes all sizing, spacing, and typography constants used in the app.
 class AppSizes {
+  // Radius constants
   static const double radiusCard = 18;
   static const double radiusButton = 14;
   static const double radiusSheet = 26;
   static const double radiusSmall = 8;
   static const double radiusChip = 6;
 
+  // Spacing constants
   static const double spacingXS = 4;
   static const double spacingS = 8;
   static const double spacingM = 12;
@@ -83,6 +94,7 @@ class AppSizes {
   static const double spacingXL = 20;
   static const double spacingXXL = 28;
 
+  // Typography constants
   static const double fontDisplay = 28;
   static const double fontTitle = 16;
   static const double fontBody = 13;
@@ -90,16 +102,20 @@ class AppSizes {
   static const double fontLabel = 11;
   static const double fontMicro = 9;
 
+  // Card specific constants
   static const double cardBarWidth = 10;
   static const double cardBarTextSize = 8.5;
   static const double cardPadding = 16;
 
+  // Icon sizing
   static const double iconM = 18;
   static const double iconS = 14;
   static const double iconL = 26;
 }
 
+/// Configures the global [ThemeData] for both Light and Dark modes.
 class AppTheme {
+  /// The global Light Theme configuration.
   static ThemeData lightTheme = ThemeData(
     brightness: Brightness.light,
     scaffoldBackgroundColor: AppColors.lightBg,
@@ -214,6 +230,7 @@ class AppTheme {
     ),
   );
 
+  /// The global Dark Theme configuration.
   static ThemeData darkTheme = ThemeData(
     brightness: Brightness.dark,
     scaffoldBackgroundColor: AppColors.darkBg,
@@ -329,29 +346,40 @@ class AppTheme {
   );
 }
 
-// ── Simple notifier to toggle theme mode ──────────────────
+/// Manages and persists the user's preferred theme mode (Light/Dark/System).
 class ThemeModeNotifier extends ChangeNotifier {
+  /// Storage key for persisting the chosen theme mode.
   static const _key = 'theme_mode';
+  
   ThemeMode _mode = ThemeMode.system;
+  
+  /// The current theme mode.
   ThemeMode get mode => _mode;
+  
   ThemeModeNotifier(ThemeMode initial) : _mode = initial;
-  // toggle between light and dark only (never back to system after user picks)
 
+  /// Toggles between Light and Dark mode, persisting the selection.
+  /// 
+  /// Note: Once toggled, it will not return to [ThemeMode.system] unless manually reset.
   void toggle() {
     _mode = _mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
     _persist();
     notifyListeners();
   }
 
+  /// Saves the current [_mode] name to local storage.
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, _mode.name); // 'light', 'dark', 'system'
+    await prefs.setString(_key, _mode.name);
   }
 
+  /// Loads the persisted theme mode from local storage.
+  /// 
+  /// Defaults to [ThemeMode.system] if no preference is saved.
   static Future<ThemeMode> load() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString(_key);
-    if (saved == null) return ThemeMode.system; // first launch = follow system
+    if (saved == null) return ThemeMode.system;
     switch (saved) {
       case 'light':
         return ThemeMode.light;
@@ -362,3 +390,4 @@ class ThemeModeNotifier extends ChangeNotifier {
     }
   }
 }
+

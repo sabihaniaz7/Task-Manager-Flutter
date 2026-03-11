@@ -6,47 +6,61 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
 import '../models/task.dart';
 
+/// Service responsible for managing all local notifications in the application.
+/// 
+/// Handles initialization, permission requests, and complex scheduling logic for 
+/// both tasks and habit trackers.
 class NotificationService {
+  /// Singleton instance of the NotificationService.
   static final NotificationService _instance = NotificationService._internal();
+  
+  /// Factory constructor to return the singleton instance.
   factory NotificationService() => _instance;
+  
   NotificationService._internal();
 
+  /// Plugin instance for interacting with native notification systems.
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
+      
+  /// Key for persisting notification permission status.
   static const _permKey = 'notif_permission_granted';
-  //Tracks whether the user has granted permission to receive notifications- consulted before scheduling notifications
+  
+  /// Internal state tracking whether notification permissions have been granted.
   bool _permissionGranted = false;
+  
+  /// Public getter for the permission status.
   bool get permissionGranted => _permissionGranted;
 
-  // INIT - call once from main()
+  /// Initializes the notification service.
+  /// 
+  /// Should be called exactly once from the `main()` function. Sets up timezones,
+  /// plugin settings, and restores previously saved permission states.
   Future<void> init() async {
-    // load the full timezone database
+    // Initialize the full timezone database.
     tz.initializeTimeZones();
-    // Ask the device which timezone it's actually in, then tell the
-    // timezone package. Without this, tz.local defaults to UTC and
-    // alarms will drift by your UTC offset during DST transitions.
-    // final String deviceTimeZone = await FlutterTimezone.getLocalTimezone();
+    
+    // Set the local timezone for accurate scheduling across DST transitions.
     final deviceTimeZone = await FlutterTimezone.getLocalTimezone();
     tz.setLocalLocation(tz.getLocation(deviceTimeZone.identifier));
 
-    //  Wire up the plugin. On iOS, we pass false for all permission flags
-    //    here — we'll ask explicitly via requestPermission() at a better
-    //    moment (after the user has context), not cold on app launch.
-
+    // Configure low-level initialization settings for Android and iOS.
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const ios = DarwinInitializationSettings(
-      requestAlertPermission: false,
+      requestAlertPermission: false, // We ask for permission contextually later.
       requestBadgePermission: false,
       requestSoundPermission: false,
     );
+    
     await _plugin.initialize(
       settings: const InitializationSettings(android: android, iOS: ios),
     );
-    // Restore persisted permission state so scheduling works after restart
+    
+    // Restore persisted permission state.
     final prefs = await SharedPreferences.getInstance();
     _permissionGranted = prefs.getBool(_permKey) ?? false;
 
-    // 4. On Android we can also verify the actual current permission state
+    // Verify actual permission state on Android (API 33+).
     final androidImpl = _plugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
@@ -57,16 +71,15 @@ class NotificationService {
       await prefs.setBool(_permKey, granted);
     }
   }
-  // ─────────────────────────────────────────────
-  // PERMISSION — call this at a contextual moment
-  // (e.g. when user creates their first task, or
-  //  from a Settings screen with an explanation).
-  // Returns true if permission was granted.
-  // ─────────────────────────────────────────────
 
+  /// Explicitly requests notification permissions from the user.
+  /// 
+  /// Should be called at a contextual moment, like when creating a task.
+  /// Returns `true` if permission was granted.
   Future<bool> requestPermission() async {
     bool granted = false;
-    // Android 13+ (API 33+)
+    
+    // Request permissions on Android.
     final androidImplementation = _plugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
@@ -75,12 +88,12 @@ class NotificationService {
       final result = await androidImplementation
           .requestNotificationsPermission();
       granted = result ?? false;
-      // Exact alarm permission (Android 12+). Without this, alarms can be
-      // delayed by the system when the device is in battery saver mode.
+      
+      // Request exact alarm permission (Android 12+) for precise notification timing.
       await androidImplementation.requestExactAlarmsPermission();
     }
 
-    // Request permissions for iOS explicitly
+    // Request permissions on iOS.
     final iosImplementation = _plugin
         .resolvePlatformSpecificImplementation<
           IOSFlutterLocalNotificationsPlugin
@@ -93,62 +106,46 @@ class NotificationService {
       );
       granted = result ?? false;
     }
+    
     _permissionGranted = granted;
-    // Persist so we don't ask again and scheduling works after restart
+    
+    // Persist permission state to avoid re-asking unnecessarily.
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_permKey, granted);
+    
     return granted;
   }
 
-  // ─────────────────────────────────────────────
-  // SCHEDULE
-  // Always fires: creation confirmation (3 sec after save)
-  //
-  // Then based on reminderMode:
-  //
-  //  ReminderMode.none
-  //    → No extra reminders
-  //
-  //  ReminderMode.onDueDay  (single-day tasks)
-  //    → 1 reminder at chosen time on the due day
-  //
-  //  ReminderMode.onceDayBefore  (multi-day tasks)
-  //    → 1 reminder at chosen time, 1 day before end date
-  //
-  //  ReminderMode.daily  (multi-day tasks)
-  //    → Reminder every day from startDate until endDate at chosen time
-  //    → Each day gets its own notification ID (startId + day offset)
-  //
-  //  ReminderMode.customDays  (multi-day tasks)
-  //    → 1 reminder at chosen time, N days before end date
-  //
-  // ─────────────────────────────────────────────
+  /// Schedules all relevant notifications for a specific [task].
+  /// 
+  /// Includes an immediate creation confirmation and various reminders
+  /// based on the task's [ReminderMode].
   Future<void> scheduleTaskNotifications(Task task) async {
+    // Clear existing notifications for this task before rescheduling.
     await cancelTaskNotifications(task);
 
-    // Don't schedule if the user explicitly denied permission.
     if (!_permissionGranted) return;
     final now = DateTime.now();
 
-    // ── Notification 1: Immediate creation confirmation ──
-    // Fires ~3 seconds after task is saved, regardless of time of day.
-    // Gives user immediate feedback that the task was created successfully.
+    // ── Immediate Feedback Notification ──
+    // Fires ~3 seconds after saving to confirm successful creation.
     final creationNotifyTime = now.add(const Duration(seconds: 3));
 
     await _scheduleNotification(
       id: task.notificationStartId,
-      title: 'TM',
+      title: 'Task Manager',
       body: '"${task.title}" — Due ${_formatDate(task.endDate)}',
       scheduledDate: creationNotifyTime,
     );
+    
     if (task.reminderMode == ReminderMode.none) return;
 
     final h = task.reminderHour;
     final m = task.reminderMinute;
 
     switch (task.reminderMode) {
-      // Sindgle day: remind at chosen time on due day
       case ReminderMode.onDueDate:
+        // Single reminder at the specified time on the due date.
         final remind = DateTime(
           task.endDate.year,
           task.endDate.month,
@@ -165,8 +162,9 @@ class NotificationService {
           );
         }
         break;
-      // ── Multi-day: 1 day before due at chosen time ──
+        
       case ReminderMode.onceDayBefore:
+        // Single reminder 24 hours before the due date.
         final dayBefore = task.endDate.subtract(const Duration(days: 1));
         final remind = DateTime(
           dayBefore.year,
@@ -184,11 +182,10 @@ class NotificationService {
           );
         }
         break;
-      // ── Multi-day: daily reminder from start until due ──
-      // Schedule one notification per day in the range.
-      // IDs: reminderId + day offset (0, 1, 2, ...)
-      // Max 30 days to avoid notification ID exhaustion.
+        
       case ReminderMode.daily:
+        // Repeating daily reminders from start until the due date.
+        // Capped at 30 days to prevent ID exhaustion.
         final duration = task.endDate.difference(task.startDate).inDays;
         final days = duration.clamp(0, 30);
         for (int i = 0; i < days; i++) {
@@ -200,15 +197,15 @@ class NotificationService {
               title: i == days ? 'Task Due Today!' : 'Task Reminder',
               body: i == days
                   ? '"${task.title}" is due today!'
-                  : '"${task.title}"  — due ${_formatDate(task.endDate)}.',
+                  : '"${task.title}" — due ${_formatDate(task.endDate)}.',
               scheduledDate: remind,
             );
           }
         }
         break;
 
-      // ── Multi-day: X days before due at chosen time ──
       case ReminderMode.customDays:
+        // Single reminder a custom number of days before the due date.
         final daysBefore = task.customDaysBefore.clamp(1, 365);
         final targetDay = task.endDate.subtract(Duration(days: daysBefore));
         final remind = DateTime(
@@ -227,29 +224,22 @@ class NotificationService {
           );
         }
         break;
+        
       case ReminderMode.none:
         break;
     }
   }
 
+  /// Helper to format dates for notification body text (e.g., "15 Mar").
   String _formatDate(DateTime d) {
     const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
     return '${d.day} ${months[d.month - 1]}';
   }
 
+  /// Low-level method to queue a notification in the native system.
   Future<void> _scheduleNotification({
     required int id,
     required String title,
@@ -261,8 +251,7 @@ class NotificationService {
         id: id,
         title: title,
         body: body,
-        // tz.local is now correctly set to the device's real timezone,
-        // so DST transitions are handled automatically by the package.
+        // TZDateTime handles timezones and DST transitions automatically.
         scheduledDate: tz.TZDateTime.from(scheduledDate, tz.local),
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
@@ -278,17 +267,15 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );
     } catch (e) {
-      // Scheduling can fail if exact alarm permission was revoked mid-session.
-      // Fail silently — the task is still saved, just without a notification.
+      // Catching scheduling failures (e.g., if permission revoked).
       debugPrint('[NotificationService] Schedule failed id=$id: $e');
     }
   }
-  // ── CANCEL ───────────────────────────────────────────────
-  // Cancel creation notif + all reminder notifs (daily can have up to 31)
 
+  /// Cancels all notifications scheduled for a specific [task].
   Future<void> cancelTaskNotifications(Task task) async {
     await _plugin.cancel(id: task.notificationStartId);
-    // Cancel up to 31 daily IDs (reminderId + 0..30)
+    // Cancel any daily reminder IDs that might have been queued.
     for (int i = 0; i <= 30; i++) {
       await _plugin.cancel(id: task.notificationReminderId + i);
     }
@@ -297,11 +284,11 @@ class NotificationService {
   // ═══════════════════════════════════════════════════════
   // TRACKER NOTIFICATIONS
   // ═══════════════════════════════════════════════════════
-  //
-  // Each tracker has one notificationId.
-  // - Creation confirmation fires 3 seconds after save (id)
-  // - If reminderEnabled: 30 daily reminders at
-  //   reminderHour:reminderMinute (ids: id+1 .. id+30)
+
+  /// Schedules daily notifications for a habit [tracker].
+  /// 
+  /// Includes a 3-second creation confirmation and up to 30 upcoming 
+  /// daily reminders at the user's preferred time.
   Future<void> scheduleTrackerNotifications(dynamic tracker) async {
     await cancelTrackerNotifications(tracker);
     if (!_permissionGranted) return;
@@ -309,10 +296,10 @@ class NotificationService {
     final now = DateTime.now();
     final id = tracker.notificationId as int;
 
-    // ── Creation confirmation ──
+    // ── Immediate Creation Confirmation ──
     await _scheduleNotification(
       id: id,
-      title: 'TM',
+      title: 'Habit Tracker',
       body: '"${tracker.title}" — tracking starts today!',
       scheduledDate: now.add(const Duration(seconds: 3)),
     );
@@ -322,23 +309,24 @@ class NotificationService {
     final h = tracker.reminderHour as int;
     final m = tracker.reminderMinute as int;
 
-    // ── Schedule 30 upcoming daily reminders ──
-    int scheduled = 0;
-    for (int i = 0; scheduled < 30; i++) {
+    // ── Queue next 30 daily reminders ──
+    int scheduledCount = 0;
+    for (int i = 0; scheduledCount < 30; i++) {
       final day = now.add(Duration(days: i));
       final remind = DateTime(day.year, day.month, day.day, h, m);
       if (remind.isAfter(now)) {
         await _scheduleNotification(
-          id: id + 1 + scheduled,
-          title: 'TM',
-          body: '"${tracker.title}"',
+          id: id + 1 + scheduledCount,
+          title: 'Habit Reminder',
+          body: 'Don\'t forget to track your habit: "${tracker.title}"',
           scheduledDate: remind,
         );
-        scheduled++;
+        scheduledCount++;
       }
     }
   }
 
+  /// Cancels all scheduled notifications for a specific [tracker].
   Future<void> cancelTrackerNotifications(dynamic tracker) async {
     final id = tracker.notificationId as int;
     await _plugin.cancel(id: id);
@@ -347,3 +335,4 @@ class NotificationService {
     }
   }
 }
+

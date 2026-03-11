@@ -6,30 +6,28 @@ import '../providers/task_provider.dart';
 import '../utils/app_theme.dart';
 import '../utils/date_helper.dart';
 
+/// A card widget that displays a summary of a [Task].
+///
+/// Supported interactions:
+/// - Tap: Navigates to the task details screen.
+/// - Swipe Right: Toggles the task's completion status.
+/// - Swipe Left: Deletes the task (with confirmation).
 class TaskCard extends StatelessWidget {
+  /// The task data to display.
   final Task task;
+
   const TaskCard({super.key, required this.task});
 
-  // ── Card background color ──────────────────────────────────
+  /// Calculates the background color for the card based on the task's [colorIndex].
   Color _cardColor(BuildContext context) {
-    final base = Color(
+    return Color(
       AppColors.cardPalette[task.colorIndex % AppColors.cardPalette.length],
     );
-    return base;
-    // final isDark = Theme.of(context).brightness == Brightness.dark;
-    // if (!isDark) return base;
-    // final hsl = HSLColor.fromColor(base);
-    // return hsl
-    //     .withLightness(0.17)
-    //     .withSaturation(hsl.saturation * 0.5)
-    //     .toColor();
   }
 
-  // ── Left bar accent color (richer shade of card color) ─────
+  /// Calculates a darker accent color for the left duration bar.
   Color _barColor(BuildContext context) {
-    final base = Color(
-      AppColors.cardPalette[task.colorIndex % AppColors.cardPalette.length],
-    );
+    final base = _cardColor(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final hsl = HSLColor.fromColor(base);
     return hsl
@@ -48,9 +46,11 @@ class TaskCard extends StatelessWidget {
       secondaryBackground: _swipeBg(isComplete: false),
       confirmDismiss: (dir) async {
         if (dir == DismissDirection.startToEnd) {
+          // Toggle completion status on right swipe.
           context.read<TaskProvider>().toggleComplete(task.id);
-          return false;
+          return false; // Don't dismiss the widget.
         }
+        // Show confirmation dialog before deleting on left swipe.
         return await _confirmDelete(context);
       },
       onDismissed: (dir) {
@@ -82,14 +82,13 @@ class TaskCard extends StatelessWidget {
                 _durationBar(context, task),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-                    //  EdgeInsets.all(AppSizes.cardPadding),
+                    padding: const EdgeInsets.all(14.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Row(
-                          crossAxisAlignment: .start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
                               child: Text(
@@ -109,13 +108,13 @@ class TaskCard extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 8),
+                            // Status chips for Done or Overdue states.
                             if (task.isCompleted)
                               _chip('Done', _barColor(context))
                             else if (task.isOverdue)
                               _chip('Overdue', AppColors.danger),
                           ],
                         ),
-                        // Description (1 line preview)
                         if (task.description.isNotEmpty) ...[
                           const SizedBox(height: 3),
                           Text(
@@ -140,13 +139,11 @@ class TaskCard extends StatelessWidget {
     );
   }
 
-  // ── Left duration bar ──────────────────────────────────────
+  /// Builds the stylized left bar displaying task dates.
   Widget _durationBar(BuildContext context, Task task) {
     final barColor = _barColor(context);
-    final sameDay =
-        task.startDate.year == task.endDate.year &&
-        task.startDate.month == task.endDate.month &&
-        task.startDate.day == task.endDate.day;
+    final sameDay = task.isSingleDay;
+
     return Container(
       width: 60,
       decoration: BoxDecoration(
@@ -183,6 +180,7 @@ class TaskCard extends StatelessWidget {
     );
   }
 
+  /// Internal helper to format dates for the duration bar.
   Widget _barDate(String day, String month) {
     return Text.rich(
       TextSpan(
@@ -210,8 +208,7 @@ class TaskCard extends StatelessWidget {
     );
   }
 
-  // ── Collapsed card content ─────────────────────────────────
-
+  /// Builds a small status chip with the given [label] and [color].
   Widget _chip(String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
@@ -230,8 +227,7 @@ class TaskCard extends StatelessWidget {
     );
   }
 
-  // ── Expanded card content ──────────────────────────────────
-
+  /// Builds the background UI shown when swiping the card.
   Widget _swipeBg({required bool isComplete}) {
     return Container(
       decoration: BoxDecoration(
@@ -248,6 +244,7 @@ class TaskCard extends StatelessWidget {
     );
   }
 
+  /// Shows a confirmation dialog when the user attempts to delete a task.
   Future<bool?> _confirmDelete(BuildContext context) {
     return showDialog<bool>(
       context: context,

@@ -7,6 +7,8 @@ import 'package:taskmanager/services/notification_service.dart';
 import 'package:taskmanager/utils/app_theme.dart';
 import 'package:taskmanager/widgets/reminder_section.dart';
 
+/// A screen that allows users to create a new task with custom titles,
+/// descriptions, date ranges, and notification reminders.
 class AddTaskScreen extends StatefulWidget {
   const AddTaskScreen({super.key});
 
@@ -18,17 +20,22 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now().add(const Duration(days: 7));
   bool _isSaving = false;
-  //Reminder State
+
+  // Reminder State
   ReminderMode _reminderMode = ReminderMode.none;
   TimeOfDay _reminderTime = const TimeOfDay(hour: 9, minute: 0);
   int _customDays = 1;
+
+  /// Determines if the task is defined for a single calendar day.
   bool get _isSingleDay =>
       _startDate.year == _endDate.year &&
       _startDate.month == _endDate.month &&
       _startDate.day == _endDate.day;
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -36,8 +43,10 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     super.dispose();
   }
 
+  /// Formats a date for display (e.g., "11 Mar 2026").
   String _formatDate(DateTime date) => DateFormat('d MMM yyyy').format(date);
 
+  /// Opens the native date picker and updates the start or end date.
   Future<void> _pickDate(bool isStart) async {
     final now = DateTime.now();
     final picked = await showDatePicker(
@@ -51,6 +60,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       setState(() {
         if (isStart) {
           _startDate = picked;
+          // Ensure end date is never before start date.
           if (_endDate.isBefore(_startDate)) {
             _endDate = _startDate;
           }
@@ -61,25 +71,22 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     }
   }
 
-  // Called when the user taps Save.
-  // Flow: explain notifications → request permission → save task.
+  /// Saves the task to the provider and closes the screen.
+  ///
+  /// The flow includes:
+  /// 1. Form validation.
+  /// 2. Notification permission check (if a reminder is set).
+  /// 3. Task persistence via [TaskProvider].
   Future<void> _saveTask() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
 
-    // Only ask for permission if we haven't already obtained it.
     final notifService = NotificationService();
     if (!notifService.permissionGranted && _reminderMode != ReminderMode.none) {
-      // Show our own explanation dialog BEFORE triggering the OS prompt.
-      // This is the recommended UX pattern: give users context first so
-      // they understand *why* the app needs the permission and are more
-      // likely to tap Allow on the real system dialog that follows.
+      // Show explanation dialog before triggering the OS prompt.
       final shouldRequest = await _showPermissionRationale();
       if (shouldRequest == true) {
         await notifService.requestPermission();
-        // Note: if they deny, _permissionGranted stays false and
-        // scheduleTaskNotifications() will simply skip scheduling.
-        // The task is still saved — notifications are optional.
       }
     }
 
@@ -99,8 +106,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     if (mounted) Navigator.pop(context);
   }
 
-  // Our custom rationale dialog — shown BEFORE the OS permission prompt.
-  // Returns true if user wants to proceed, false/null if they skip.
+  /// Displays a custom dialog explaining why notification permissions are needed.
   Future<bool?> _showPermissionRationale() async {
     final theme = Theme.of(context);
     return showDialog<bool>(
@@ -117,9 +123,8 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
           0,
         ),
         content: Column(
-          mainAxisSize: .min,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            //Icon
             Container(
               width: 64,
               height: 64,
@@ -148,12 +153,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
             const SizedBox(height: AppSizes.spacingS),
           ],
         ),
-        actionsPadding: const EdgeInsets.fromLTRB(
-          AppSizes.spacingL,
-          AppSizes.spacingS,
-          AppSizes.spacingL,
-          AppSizes.spacingL,
-        ),
+        actionsPadding: const EdgeInsets.all(AppSizes.spacingL),
         actionsAlignment: MainAxisAlignment.spaceBetween,
         actions: [
           // "Skip" — task saves without notifications
@@ -182,7 +182,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                 color: theme.brightness == Brightness.dark
                     ? AppColors.darkBg
                     : Colors.white,
-                fontWeight: .w700,
+                fontWeight: FontWeight.w700,
               ),
             ),
             onPressed: () => Navigator.pop(ctx, true),
@@ -216,7 +216,6 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
             AppSizes.spacingXL + MediaQuery.of(context).padding.bottom + 16,
           ),
           children: [
-            const SizedBox(height: AppSizes.spacingS),
             _fieldLabel(context, 'TASK TITLE *'),
             const SizedBox(height: AppSizes.spacingS),
             TextFormField(
@@ -276,48 +275,19 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
               },
             ),
             const SizedBox(height: AppSizes.spacingXL),
-
-            /// Save button
-            SizedBox(
-              width: double.infinity,
-              height: 54,
-              child: ElevatedButton(
-                onPressed: _isSaving ? null : _saveTask,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: theme.brightness == Brightness.dark
-                      ? AppColors.darkBg
-                      : Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppSizes.radiusButton),
-                  ),
-                  elevation: 0,
-                ),
-                child: _isSaving
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text(
-                        'Save Task',
-                        style: TextStyle(
-                          fontSize: AppSizes.fontTitle,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-              ),
-            ),
+            _saveButton(theme),
           ],
         ),
       ),
     );
   }
 
+  /// Internal label for form sections.
   Widget _fieldLabel(BuildContext context, String text) {
     return Text(text, style: Theme.of(context).textTheme.labelMedium);
   }
 
+  /// Reusable input decoration for text fields.
   InputDecoration _inputDecoration(BuildContext context, String hint) {
     final theme = Theme.of(context);
     return InputDecoration(
@@ -349,6 +319,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     );
   }
 
+  /// Builds a clickable tile for date selection.
   Widget _buildDateTile(
     BuildContext context,
     String label,
@@ -383,6 +354,40 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Builds the main save button.
+  Widget _saveButton(ThemeData theme) {
+    return SizedBox(
+      width: double.infinity,
+      height: 54,
+      child: ElevatedButton(
+        onPressed: _isSaving ? null : _saveTask,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: theme.colorScheme.primary,
+          foregroundColor: theme.brightness == Brightness.dark
+              ? AppColors.darkBg
+              : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.radiusButton),
+          ),
+          elevation: 0,
+        ),
+        child: _isSaving
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Text(
+                'Save Task',
+                style: TextStyle(
+                  fontSize: AppSizes.fontTitle,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
       ),
     );
   }

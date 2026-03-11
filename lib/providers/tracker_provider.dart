@@ -6,40 +6,51 @@ import 'package:taskmanager/services/notification_service.dart';
 import 'package:taskmanager/utils/app_theme.dart';
 import 'package:uuid/uuid.dart';
 
-/// Provider class for managing tracker entries.
-/// Handles persistence using [SharedPreferences] and provides methods to manipulate tracker data.
+/// Manages the state and business logic for habit trackers.
+///
+/// This provider handles:
+/// *   **Persistence**: Storing habit data using [SharedPreferences].
+/// *   **Notifications**: Scheduling recurring daily reminders via [NotificationService].
+/// *   **Widgets**: Triggering refreshes for the dedicated habit tracking widget.
+/// *   **Statistics**: Managing completion dates and streak calculations (via [Tracker] model).
 class TrackerProvider extends ChangeNotifier {
-  /// Key used for storing tracking entries in SharedPreferences.
+  /// Key used for storing tracking entries in [SharedPreferences].
   static const _storageKey = 'tracking_entries';
+
+  /// Platform channel for updating the native habit tracking widget on Android.
   static const _widgetChannel = MethodChannel('com.example.taskmanager/widget');
 
-  /// Utility for generating unique identifiers.
   final _uuid = const Uuid();
   final _notifications = NotificationService();
 
-  /// List of all tracker entries (including archived ones).
+  /// Internal source of truth for all habit trackers (active and archived).
   List<Tracker> _entries = [];
 
-  /// Flag indicating if data is currently being loaded.
+  /// Private state to track if data is currently being fetched from storage.
   bool _isLoading = false;
 
-  /// Returns a list of active (non-archived) tracker entries.
+  /// Returns a list of active (non-archived) habit trackers.
   List<Tracker> get entries => _entries.where((t) => !t.isArchived).toList();
 
-  /// Returns a list of archived tracker entries.
+  /// Returns a list of habit trackers that have been moved to the archive.
   List<Tracker> get archivedEntries =>
       _entries.where((t) => t.isArchived).toList();
 
-  /// Returns true if the provider is currently loading data.
+  /// Whether the provider is currently fetching data from [SharedPreferences].
   bool get isLoading => _isLoading;
 
+  /// Requests the native platform to refresh the habit tracking home screen widget.
   Future<void> _refreshWidget() async {
     try {
       await _widgetChannel.invokeMethod('refreshTrackerWidget');
-    } catch (_) {}
+    } catch (_) {
+      // Ignore if platform channel is unavailable (e.g., on iOS).
+    }
   }
 
-  /// Loads tracking data from [SharedPreferences].
+  /// Loads the habit tracking data from local persistence.
+  ///
+  /// Should be called during app initialization.
   Future<void> loadTrackingData() async {
     _isLoading = true;
     notifyListeners();
@@ -47,11 +58,12 @@ class TrackerProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final list = prefs.getStringList(_storageKey) ?? [];
     _entries = list.map((s) => Tracker.fromJsonString(s)).toList();
+    
     _isLoading = false;
     notifyListeners();
   }
 
-  /// Saves the current list of entries to [SharedPreferences].
+  /// Serializes and persists the current list of trackers to [SharedPreferences].
   Future<void> _save() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(
@@ -61,17 +73,25 @@ class TrackerProvider extends ChangeNotifier {
     await _refreshWidget();
   }
 
-  /// Determines the next available color index from the palette to ensure variety.
+  /// Determines the next available color index from the theme palette.
+  ///
+  /// Attempts to pick a color that is not currently in use by other trackers
+  /// to ensure visual distinctness in the dashboard.
   int _nextColorIndex() {
     if (_entries.isEmpty) return 0;
-    final used = _entries.map((t) => t.colorIndex).toSet();
-    for (int i = 0; i < AppColors.cardPalette.length; i++) {
-      if (!used.contains(i)) return i;
+    final paletteSize = AppColors.cardPalette.length;
+    final usedIndices = _entries.map((t) => t.colorIndex).toSet();
+    for (int i = 0; i < paletteSize; i++) {
+      if (!usedIndices.contains(i)) return i;
     }
-    return (_entries.last.colorIndex + 1) % AppColors.cardPalette.length;
+    return (_entries.last.colorIndex + 1) % paletteSize;
   }
 
-  /// Adds a new tracker entry and saves it locally.
+  /// Creates and adds a new habit tracker.
+  ///
+  /// *   Generates a unique notification ID (offset to avoid Task collisions).
+  /// *   Schedules an optional daily reminder.
+  /// *   Persists the new tracker to storage.
   Future<void> addEntry({
     required String title,
     String description = '',
@@ -79,8 +99,9 @@ class TrackerProvider extends ChangeNotifier {
     int reminderHour = 9,
     int reminderMinute = 0,
   }) async {
-    // Generate a unique notification ID
+    // Generate a unique notification ID (starting from 200,000 to avoid collision with Tasks)
     final notifId = DateTime.now().millisecondsSinceEpoch % 100000 + 200000;
+
     final entry = Tracker(
       id: _uuid.v4(),
       title: title,
@@ -92,25 +113,32 @@ class TrackerProvider extends ChangeNotifier {
       reminderMinute: reminderMinute,
       notificationId: notifId,
     );
+    
     _entries.add(entry);
     await _save();
     await _notifications.scheduleTrackerNotifications(entry);
     notifyListeners();
   }
 
-  /// Updates an existing tracker entry.
+  /// Updates an existing tracker's configuration.
+  ///
+  /// Automatically re-schedules notifications if reminder settings have changed.
   Future<void> updateEntry(Tracker entry) async {
     final i = _entries.indexWhere((t) => t.id == entry.id);
     if (i != -1) {
       _entries[i] = entry;
       await _save();
+      
+      // Reschedule notifications to reflect potential changes in time or status.
       await _notifications.cancelTrackerNotifications(entry);
       await _notifications.scheduleTrackerNotifications(entry);
       notifyListeners();
     }
   }
 
-  /// Toggles the tracked status for a specific date on a tracker.
+  /// Toggles the completion status for a specific [date] on the specified tracker.
+  ///
+  /// This is the primary method for recording daily habit success.
   Future<void> toggleDate(String id, DateTime date) async {
     final i = _entries.indexWhere((t) => t.id == id);
     if (i != -1) {
@@ -120,16 +148,22 @@ class TrackerProvider extends ChangeNotifier {
     }
   }
 
-  /// Deletes a tracker entry permanently.
+  /// Permanently removes a tracker and cancels all associated notifications.
   Future<void> deleteEntry(String id) async {
-    final entry = _entries.firstWhere((t) => t.id == id);
+    final entryIndex = _entries.indexWhere((t) => t.id == id);
+    if (entryIndex == -1) return;
+    
+    final entry = _entries[entryIndex];
     await _notifications.cancelTrackerNotifications(entry);
-    _entries.removeWhere((t) => t.id == id);
+    _entries.removeAt(entryIndex);
+    
     await _save();
     notifyListeners();
   }
 
-  /// Archives a tracker entry instead of deleting it.
+  /// Moves a tracker to the archive and cancels its active notifications.
+  ///
+  /// Archived trackers are preserved in storage but not shown in the primary dashboard.
   Future<void> archiveEntry(String id) async {
     final i = _entries.indexWhere((t) => t.id == id);
     if (i != -1) {
@@ -140,3 +174,4 @@ class TrackerProvider extends ChangeNotifier {
     }
   }
 }
+

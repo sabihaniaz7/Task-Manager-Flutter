@@ -5,33 +5,32 @@ import 'package:taskmanager/providers/tracker_provider.dart';
 import 'package:taskmanager/screens/tracker_detail_screen.dart';
 import 'package:taskmanager/utils/app_theme.dart';
 
+/// A card widget that displays a 7-day progress strip for a [Tracker].
+///
+/// Supported interactions:
+/// - Tap: Navigates to the habit tracker details screen.
+/// - Swipe Right: Archives/Completes the tracker entry.
+/// - Swipe Left: Deletes the tracker (with confirmation).
+/// - Day Tap: Toggles completion status for a specific date in the 7-day strip.
 class TrackerCard extends StatelessWidget {
+  /// The tracker data to display.
   final Tracker trackerEntry;
+
   const TrackerCard({super.key, required this.trackerEntry});
 
-  // Colors
+  /// Calculates the background color for the card based on the tracker's [colorIndex].
   Color _cardColor(BuildContext context) {
-    final base = Color(
+    return Color(
       AppColors.cardPalette[trackerEntry.colorIndex %
           AppColors.cardPalette.length],
     );
-    return base;
-    // final isDark = Theme.of(context).brightness == Brightness.dark;
-    // if (!isDark) return base;
-    // final hsl = HSLColor.fromColor(base);
-    // return hsl
-    //     .withLightness(0.17)
-    //     .withSaturation(hsl.saturation * 0.5)
-    //     .toColor();
   }
 
+  /// Calculates a darker accent color for the left streak bar and status indicators.
   Color _barColor(BuildContext context) {
-    final base = Color(
-      AppColors.cardPalette[trackerEntry.colorIndex %
-          AppColors.cardPalette.length],
-    );
-    final hsl = HSLColor.fromColor(base);
+    final base = _cardColor(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hsl = HSLColor.fromColor(base);
     return hsl
         .withLightness(isDark ? 0.46 : 0.50)
         .withSaturation(0.68)
@@ -47,14 +46,15 @@ class TrackerCard extends StatelessWidget {
 
     return Dismissible(
       key: Key(entry.id),
-      background: _swipBg(isDelete: false),
-      secondaryBackground: _swipBg(isDelete: true),
+      background: _swipeBg(isDelete: false),
+      secondaryBackground: _swipeBg(isDelete: true),
       confirmDismiss: (dir) async {
         if (dir == DismissDirection.startToEnd) {
-          // Archieve(complete)
+          // Archive (complete) the tracker on right swipe.
           context.read<TrackerProvider>().archiveEntry(entry.id);
-          return false;
+          return false; // Don't dismiss from the list.
         }
+        // Confirm before deletion on left swipe.
         return await _confirmDelete(context);
       },
       onDismissed: (dir) {
@@ -83,46 +83,32 @@ class TrackerCard extends StatelessWidget {
           ),
           child: Stack(
             children: [
-              // streak bar positioned to stretch
+              // Stylized left bar displaying the overall progress ratio (e.g., "5 / 10").
               Positioned(
                 top: 0,
                 bottom: 0,
                 left: 0,
                 child: _streakBar(context, entry),
               ),
-              // Main content shifted to the right
               Padding(
                 padding: const EdgeInsets.only(left: 42),
-                // padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
                 child: Padding(
-                  padding: const EdgeInsets.all(AppSizes.fontCaption),
+                  padding: const EdgeInsets.all(AppSizes.spacingM),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Title row + streak badge
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              entry.title,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: AppColors.lightPrimary,
-                                decoration: entry.isArchived
-                                    ? TextDecoration.lineThrough
-                                    : null,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          // if (entry.currentStreak > 0) ...[
-                          //   const SizedBox(width: 8),
-                          //   _streakBadge(entry.currentStreak),
-                          // ],
-                        ],
+                      Text(
+                        entry.title,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: AppColors.lightPrimary,
+                          decoration: entry.isArchived
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-
                       if (entry.description.isNotEmpty) ...[
                         const SizedBox(height: 3),
                         Text(
@@ -134,10 +120,8 @@ class TrackerCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
-
                       const SizedBox(height: 10),
-
-                      // ── 7-day strip ──────────────────
+                      // Interactive 7-day progress strip.
                       _sevenDayStrip(context, entry, barColor),
                     ],
                   ),
@@ -150,14 +134,15 @@ class TrackerCard extends StatelessWidget {
     );
   }
 
-  Widget _swipBg({required bool isDelete}) {
+  /// Builds the background UI for swiping actions.
+  Widget _swipeBg({required bool isDelete}) {
     return Container(
       decoration: BoxDecoration(
         color: isDelete ? AppColors.danger : AppColors.success,
         borderRadius: BorderRadius.circular(AppSizes.radiusCard),
       ),
       alignment: isDelete ? Alignment.centerRight : Alignment.centerLeft,
-      padding: EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Icon(
         isDelete ? Icons.delete_rounded : Icons.check_rounded,
         color: Colors.white,
@@ -166,14 +151,14 @@ class TrackerCard extends StatelessWidget {
     );
   }
 
-  //Left bar with streak ratio
+  /// Builds the stylized left bar with the habit completion ratio.
   Widget _streakBar(BuildContext context, Tracker entry) {
     final barColor = _barColor(context);
     return Container(
       width: 42,
       decoration: BoxDecoration(
         color: barColor,
-        borderRadius: BorderRadius.horizontal(
+        borderRadius: const BorderRadius.horizontal(
           left: Radius.circular(AppSizes.radiusCard),
         ),
       ),
@@ -182,12 +167,12 @@ class TrackerCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            '${entry.doneDays} / ${entry.totalDays}',
+            '${entry.doneDays}\n/\n${entry.totalDays}',
             style: const TextStyle(
-              fontSize: 16,
+              fontSize: 13,
               fontWeight: FontWeight.w900,
               color: Colors.white,
-              height: 1.4,
+              height: 1.1,
             ),
             textAlign: TextAlign.center,
           ),
@@ -196,6 +181,7 @@ class TrackerCard extends StatelessWidget {
     );
   }
 
+  /// Builds an interactive row of circles representing the last 7 days of the habit.
   Widget _sevenDayStrip(BuildContext context, Tracker entry, Color barColor) {
     final days = entry.last7Days.reversed.toList();
     final doneColor = barColor;
@@ -210,7 +196,7 @@ class TrackerCard extends StatelessWidget {
         final isFuture = d['isFuture'] as bool;
         final isToday =
             Tracker.dateKey(date) == Tracker.dateKey(DateTime.now());
-        // Day label
+
         const dayNames = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
         final dayLabel = dayNames[date.weekday - 1];
 
@@ -257,7 +243,7 @@ class TrackerCard extends StatelessWidget {
                           child: Text(
                             '${date.day}',
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: 11,
                               fontWeight: FontWeight.w800,
                               color: done ? Colors.white : doneColor,
                             ),
@@ -272,6 +258,7 @@ class TrackerCard extends StatelessWidget {
     );
   }
 
+  /// Shows a confirmation dialog before deleting the tracker.
   Future<bool?> _confirmDelete(BuildContext context) {
     return showDialog<bool>(
       context: context,

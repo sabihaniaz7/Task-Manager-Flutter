@@ -2,31 +2,72 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
-// Reminder mode
+/// Defines the scheduling behavior for task reminders.
 enum ReminderMode {
-  none, //No reminder
-  onceDayBefore, // 1 reminder: day before at chosen time
-  onDueDate, // 1-day tasks: reminder at due date at chosen time
-  daily, //every day from start until end at chosen time
-  customDays, //X days before due date at chosen time
+  /// No reminder will be set for the task.
+  none,
+
+  /// A one-time reminder scheduled for the day before the due date.
+  onceDayBefore,
+
+  /// A reminder scheduled for the exact due date.
+  onDueDate,
+
+  /// Reminders scheduled daily from the start date until the end date.
+  daily,
+
+  /// A reminder scheduled a specific number of days before the due date.
+  customDays,
 }
 
+/// Represents a task in the application.
+///
+/// Contains information about the task's title, duration, completion status,
+/// and reminder settings.
 class Task {
+  /// Unique identifier for the task.
   final String id;
+
+  /// The title or name of the task.
   String title;
+
+  /// An optional detailed description of the task.
   String description;
+
+  /// The date when the task is scheduled to start.
   DateTime startDate;
+
+  /// The date when the task is scheduled to be completed.
   DateTime endDate;
+
+  /// The timestamp when the task was first created.
   DateTime createdAt;
+
+  /// Whether the task has been marked as completed.
   bool isCompleted;
+
+  /// Index for identifying the color associated with this task in the UI.
   int colorIndex;
+
+  /// Notification ID used for the start date notification.
   int notificationStartId;
+
+  /// Notification ID used for the reminder notification.
   int notificationReminderId;
+
   // Reminder fields--------------------------------
+
+  /// The mode determining how and when reminders are sent.
   ReminderMode reminderMode;
-  int reminderHour; // 0-23,default 9
-  int reminderMinute; // 0-59,default 0
-  int customDaysBefore; // only used when mode == customDays
+
+  /// The hour (0-23) at which the reminder should be triggered.
+  int reminderHour;
+
+  /// The minute (0-59) at which the reminder should be triggered.
+  int reminderMinute;
+
+  /// Number of days before the due date for [ReminderMode.customDays].
+  int customDaysBefore;
 
   Task({
     required this.id,
@@ -45,20 +86,24 @@ class Task {
     this.customDaysBefore = 1,
   });
 
+  /// Returns true if the task is not completed and the current time is past the end date.
   bool get isOverdue {
     final now = DateTime.now();
     final end = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
     return !isCompleted && now.isAfter(end);
   }
 
+  /// Returns true if the task starts and ends on the same calendar day.
   bool get isSingleDay =>
       startDate.year == endDate.year &&
       startDate.month == endDate.month &&
       startDate.day == endDate.day;
 
+  /// Returns the reminder time as a [TimeOfDay] object.
   TimeOfDay get reminderTime =>
       TimeOfDay(hour: reminderHour, minute: reminderMinute);
 
+  /// Creates a copy of this task with the given fields replaced by new values.
   Task copyWith({
     String? id,
     String? title,
@@ -94,6 +139,7 @@ class Task {
     );
   }
 
+  /// Converts the [Task] object to a JSON-compatible map.
   Map<String, dynamic> toJson() => {
     'id': id,
     'title': title,
@@ -111,6 +157,7 @@ class Task {
     'customDaysBefore': customDaysBefore,
   };
 
+  /// Creates a [Task] object from a JSON map.
   factory Task.fromJson(Map<String, dynamic> json) => Task(
     id: json['id'],
     title: json['title'],
@@ -128,6 +175,9 @@ class Task {
     customDaysBefore: json['customDaysBefore'] ?? 1,
   );
 
+  /// Encodes the [Task] object into a JSON string.
   String toJsonString() => jsonEncode(toJson());
+
+  /// Decodes a JSON string into a [Task] object.
   factory Task.fromJsonString(String s) => Task.fromJson(jsonDecode(s));
 }

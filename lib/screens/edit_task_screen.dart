@@ -6,8 +6,14 @@ import '../models/task.dart';
 import '../providers/task_provider.dart';
 import '../utils/app_theme.dart';
 
+/// A screen that allows users to modify the details of an existing [Task].
+///
+/// Pre-populates fields with the task's current data and allows updating
+/// title, description, duration, and reminder settings.
 class EditTaskScreen extends StatefulWidget {
+  /// The task to be edited.
   final Task task;
+
   const EditTaskScreen({super.key, required this.task});
 
   @override
@@ -18,13 +24,17 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
+
   late DateTime _startDate;
   late DateTime _endDate;
   bool _isSaving = false;
 
+  // Reminder State
   late ReminderMode _reminderMode;
   late TimeOfDay _reminderTime;
   late int _customDays;
+
+  /// Determines if the updated task duration is a single calendar day.
   bool get _isSingleDay =>
       _startDate.year == _endDate.year &&
       _startDate.month == _endDate.month &&
@@ -33,6 +43,7 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
   @override
   void initState() {
     super.initState();
+    // Initialize state with current task properties.
     _titleController = TextEditingController(text: widget.task.title);
     _descriptionController = TextEditingController(
       text: widget.task.description,
@@ -54,8 +65,10 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
     super.dispose();
   }
 
+  /// Formats a date for display (e.g., "11 Mar 2026").
   String _formatDate(DateTime date) => DateFormat('d MMM yyyy').format(date);
 
+  /// Opens the native date picker and updates the start or end date.
   Future<void> _pickDate(bool isStart) async {
     final picked = await showDatePicker(
       context: context,
@@ -67,6 +80,7 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
       setState(() {
         if (isStart) {
           _startDate = picked;
+          // Ensure end date remains valid relative to start.
           if (_endDate.isBefore(_startDate)) {
             _endDate = _startDate.add(const Duration(days: 1));
           }
@@ -77,9 +91,11 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
     }
   }
 
+  /// Persists the updated task details to the provider.
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
+
     final updated = widget.task.copyWith(
       title: _titleController.text.trim(),
       description: _descriptionController.text.trim(),
@@ -90,6 +106,7 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
       reminderMinute: _reminderTime.minute,
       customDaysBefore: _customDays,
     );
+
     await context.read<TaskProvider>().updateTask(updated);
     if (mounted) Navigator.pop(context);
   }
@@ -113,7 +130,6 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
         child: ListView(
           padding: const EdgeInsets.all(AppSizes.spacingXL),
           children: [
-            const SizedBox(height: AppSizes.spacingS),
             _label(context, 'TASK TITLE *'),
             const SizedBox(height: AppSizes.spacingS),
             TextFormField(
@@ -166,47 +182,19 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
               },
             ),
             const SizedBox(height: AppSizes.spacingXL),
-            // Save button
-            SizedBox(
-              width: double.infinity,
-              height: 54,
-              child: ElevatedButton(
-                onPressed: _isSaving ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: theme.brightness == Brightness.dark
-                      ? AppColors.darkBg
-                      : Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppSizes.radiusButton),
-                  ),
-                  elevation: 0,
-                ),
-                child: _isSaving
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text(
-                        'Save Changes',
-                        style: TextStyle(
-                          fontSize: AppSizes.fontTitle,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-              ),
-            ),
+            _saveButton(theme),
           ],
         ),
       ),
     );
   }
 
+  /// Internal label for form sections.
   Widget _label(BuildContext context, String text) {
     return Text(text, style: Theme.of(context).textTheme.labelMedium);
   }
 
+  /// Builds a clickable tile for date selection.
   Widget _dateTile(
     BuildContext context,
     String label,
@@ -241,6 +229,40 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Builds the main save button.
+  Widget _saveButton(ThemeData theme) {
+    return SizedBox(
+      width: double.infinity,
+      height: 54,
+      child: ElevatedButton(
+        onPressed: _isSaving ? null : _save,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: theme.colorScheme.primary,
+          foregroundColor: theme.brightness == Brightness.dark
+              ? AppColors.darkBg
+              : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.radiusButton),
+          ),
+          elevation: 0,
+        ),
+        child: _isSaving
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Text(
+                'Save Changes',
+                style: TextStyle(
+                  fontSize: AppSizes.fontTitle,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
       ),
     );
   }
