@@ -1,11 +1,15 @@
-# Task Manager
+# ✦ Trak
 
- A clean, minimal Flutter task manager with smart reminders, dark mode, and a home screen widget
+A premium Flutter productivity app — task management & habit tracking in one place
+
+Built with clean architecture using `provider` for state management, smart reminders, swipeable home screen widgets, and a polished dark/light UI.
 
 ![Flutter](https://img.shields.io/badge/Flutter-3.38.6-02569B?style=flat-square&logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-3.10.7-0175C2?style=flat-square&logo=dart&logoColor=white)
 ![Android](https://img.shields.io/badge/Android-6.0+%20(API%2023+)-3DDC84?style=flat-square&logo=android&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)
+
+> **Note:** Although the codebase is written for both Android and iOS, the app has currently only been tested on Android.
 
 ---
 
@@ -24,22 +28,48 @@
 
 ## Features
 
-- **Task Management** — Create, edit, delete tasks with title, description, and date range
-- **Smart Reminders** — Per-task custom reminders with 4 modes:
-  - On due day (single-day tasks)
-  - Day before due
-  - Daily reminders until due date
-  - Custom X days before due
-- **Pick your reminder time** — Time picker per task, not a global setting
-- **Dark / Light Mode** — Toggle instantly from the home screen header
-- **Color-coded Cards** — 8 pastel colors auto-assigned uniquely per task
-- **Swipe Gestures** — Swipe right to complete, swipe left to delete
-- **Expandable Cards** — Tap any card to expand and see full details + actions
-- **Home Screen Widget** — Glanceable widget showing your latest active task and count
-- **Overdue Detection** — Overdue tasks get a badge automatically
-- **Sort Options** — Sort by start date, end date, created date, or overdue first
-- **Persistent Storage** — All tasks saved locally using SharedPreferences
-- **Tabs** — All Tasks / Active / Completed views
+### Task Management
+
+- Create tasks with title, description (optional), and date range
+- **Task Detail Screen** — full info view with animated mark complete, progress bar, days remaining
+- **Overdue detection** — automatic badge when past due date
+- **Sort options** — by start date, end date, created date, or overdue first
+- **Tabs** — All / Active / Completed views
+- **Swipe gestures** — swipe right to complete, swipe left to delete
+
+### Habit Tracker
+
+- Create daily habits/trackers with title, optional description and reminder time.
+- **Connected calendar** — done days shown as filled circles linked by a bar (streak visualization)
+- **Swipeable monthly calendar** — swipe left/right to browse months
+- **7-day strip** on each card showing current week at a glance
+- **Streak counter** — live current streak + total done/total days stats
+- **Sort options** — newest, highest streak, best completion rate
+- **Swipe to delete** trackers
+
+### Smart Notifications
+
+- **Tasks** — 4 reminder modes: on due day, day before, daily, or custom X days before
+- **Trackers** — daily check-in reminder at your chosen time
+- Creation confirmation notification (3 sec after saving)
+- Notifications auto-cancelled on delete/archive
+
+### Home Screen Widgets
+
+- **Task Widget** — shows active task title + due date, navigate with `‹` `›`
+- **Tracker Widget** — shows tracker title + today's status (✅/⭕) + 🔥 streak, navigate with `‹` `›`
+- Both widgets refresh instantly after any change (no delay)
+- Added via Android widget picker independently
+
+### UI & Theming
+
+- **Dark / Light mode** toggle — smooth animated transition
+- **Color-coded cards** — 7 pastel colors auto-assigned uniquely
+- **Colored card shadows** — depth that matches each card's accent color
+- **Splash screen** — branded entry with subtle glow animation
+- **Shared animated header** — title morphs between "Task Manager" / "Tracker"
+- **Swipeable navigation** — PageView between Tasks and Tracker screens
+- All colors, sizes, radii centralized in `app_theme.dart` — zero hardcoding
 
 ---
 
@@ -47,31 +77,50 @@
 
 ```dart
 lib/
-├── main.dart                  # App entry + ThemeModeNotifier
+├── main.dart                        # Entry point + ThemeModeNotifier + providers
 ├── models/
-│   └── task.dart              # Task model + ReminderMode enum
+│   ├── task.dart                    # Task model + ReminderMode enum
+│   └── tracker.dart                 # Tracker model + streak/calendar logic
 ├── providers/
-│   └── task_provider.dart     # State management (Provider pattern)
+│   ├── task_provider.dart           # Task state + widget refresh channel
+│   └── tracker_provider.dart        # Tracker state + notifications + widget refresh
 ├── screens/
-│   ├── home_screen.dart       # Main screen with tabs + sort sheet
-│   ├── add_task_screen.dart   # Create new task
-│   └── edit_task_screen.dart  # Edit existing task
+│   ├── splash_screen.dart           # Animated splash screen
+│   ├── main_screen.dart             # PageView + shared header + bottom nav
+│   ├── home_screen.dart             # Task tabs (All / Active / Completed)
+│   ├── tracker_screen.dart          # Tracker list with sort
+│   ├── task_detail_screen.dart      # Task detail — complete, progress, info
+│   ├── tracker_detail_screen.dart   # Tracker detail — connected calendar
+│   ├── add_task_screen.dart         # Create task form
+│   ├── edit_task_screen.dart        # Edit task form
+│   ├── add_habit_screen.dart        # Create tracker form
+│   └── edit_tracker_screen.dart     # Edit tracker form
 ├── services/
-│   ├── notification_service.dart  # Local notifications + scheduling
-│   └── storage_service.dart       # SharedPreferences persistence
+│   ├── notification_service.dart    # Task + tracker notification scheduling
+│   └── storage_service.dart         # SharedPreferences helpers
 ├── utils/
-│   ├── app_theme.dart         # All colors, sizes, themes (no hardcoding)
-│   └── date_helper.dart       # Date formatting helpers
+│   ├── app_theme.dart               # All colors, sizes, themes
+│   └── date_helper.dart             # Date formatting helpers
 └── widgets/
-    ├── task_card.dart         # Expandable task card with swipe gestures
-    └── reminder_section.dart  # Collapsible reminder picker UI
+    ├── task_card.dart               # Clean task card — tap to detail, swipe gestures
+    ├── tracker_card.dart            # Tracker card — 7-day strip, swipe to archive/delete
+    └── reminder_section.dart        # Reusable reminder picker UI
 
 android/app/src/main/
-├── kotlin/.../TaskWidgetProvider.kt   # Home screen widget
+├── kotlin/.../
+│   ├── MainActivity.kt              # MethodChannel — refreshes both widgets
+│   ├── TaskWidgetProvider.kt        # Task home screen widget
+│   └── TrackerWidgetProvider.kt     # Tracker home screen widget
 └── res/
-    ├── layout/task_widget.xml         # Widget layout
-    ├── xml/task_widget_info.xml       # Widget metadata
-    └── drawable/widget_background.xml # Widget background shape
+    ├── layout/
+    │   ├── task_widget.xml          # Task widget layout
+    │   └── tracker_widget.xml       # Tracker widget layout
+    ├── xml/
+    │   ├── task_widget_info.xml     # Task widget metadata
+    │   └── tracker_widget_info.xml  # Tracker widget metadata
+    └── drawable/
+        ├── ic_chevron_left.xml      # Custom ‹ arrow
+        └── ic_chevron_right.xml     # Custom › arrow
 ```
 
 ---
@@ -89,7 +138,7 @@ android/app/src/main/
 #### 1. Clone the repo
 
 ```bash
-git clone https://github.com/sabihaniaz7/task-manager.git
+git clone https://github.com/sabihaniaz7/Task-Manager-Flutter.git
 cd task-manager
 ```
 
@@ -124,33 +173,65 @@ flutter run
 
 ## Notification System
 
-Every task gets up to 2 notifications:
+### Tasks
 
-| Trigger | What fires |
+| Trigger | Notification |
 | --- | --- |
-| Task created | Instant confirmation (3 sec delay) |
-| Single-day task | Reminder at your chosen time on due day |
-| Multi-day — Day before | 9 AM (or chosen time) the day before due |
-| Multi-day — Daily | Every day from start to due at chosen time |
-| Multi-day — Custom | X days before due at chosen time |
+| Task created | Confirmation after 3 seconds |
+| Single-day — on due day | Reminder at chosen time on due day |
+| Multi-day — day before | Reminder at chosen time, 1 day before end |
+| Multi-day — daily | Every day from start to due at chosen time |
+| Multi-day — custom | X days before due at chosen time |
 
-Notifications are automatically cancelled when a task is completed or deleted.
+### Trackers
+
+| Trigger | Notification |
+| --------- | ------------- |
+| Tracker created | Confirmation after 3 seconds |
+| Reminder enabled | Daily check-in at chosen time (30 days scheduled ahead) |
+
+> Notifications are automatically cancelled on delete or archive.
 
 ---
 
-## Home Screen Widget
+## Android Widgets
 
-Add the widget from your launcher's widget picker. It displays:
+Two independent widgets — add each from your Android widget picker.
 
-- Your latest active task title
-- Due date
-- Total active task count
+> **Note:** These custom widgets are currently only tested and supported on Android.
+
+| Widget | Shows | Navigation |
+| -------- | ------- | ----------- |
+| **Task Widget** | Task title + due date | `‹` `›` to browse active tasks |
+| **Tracker Widget** | Tracker name + today status + streak | `‹` `›` to browse trackers |
+
+Both update instantly when you make changes in the app via a direct `MethodChannel` push — no polling delay.
 
 Tapping the widget opens the app directly.
 
 ---
 
-## Theming
+## 🎨 Design System
+
+All design tokens live in `lib/utils/app_theme.dart`:
+
+```dart
+// 7 pastel card colors
+AppColors.cardPalette
+
+// Semantic colors
+AppColors.success   // #4CAF82
+AppColors.danger    // #E05555
+AppColors.warning   // #E8A030
+
+// Light theme surfaces
+AppColors.lightBg       // #F2F3F7
+AppColors.lightSurface  // #FFFFFF
+
+// Dark theme surfaces
+AppColors.darkBg        // #0F0F18
+AppColors.darkSurface   // #1A1A28
+```
 
 All colors, font sizes, spacing, and border radii are defined centrally in `app_theme.dart` — nothing is hardcoded in widgets. The app supports both light and dark themes with smooth animated transitions.
 
@@ -172,4 +253,4 @@ MIT License — free to use, modify, and distribute.
 
 ---
 
-Made with ❤️ using Flutter
+Made with ❤️ using Flutter. By Sabiha Niaz
