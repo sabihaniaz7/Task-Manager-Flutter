@@ -139,7 +139,7 @@ android/app/src/main/
 
 ```bash
 git clone https://github.com/sabihaniaz7/Task-Manager-Flutter.git
-cd task-manager
+cd taskmanager
 ```
 
 #### 2. Install dependencies
