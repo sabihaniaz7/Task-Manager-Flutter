@@ -15,28 +15,38 @@ class TrackerDetailScreen extends StatefulWidget {
 
 class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
   late DateTime _displayMonth;
-
+  late PageController _pageController;
+  late int _pageIndex;
+  // Months available: from tracker startDate month up to current month
+  late List<DateTime> _months;
   @override
   void initState() {
     super.initState();
     final now = DateTime.now();
-    _displayMonth = DateTime(now.year, now.month);
+    final start = DateTime(
+      widget.trackerEntry.startDate.year,
+      widget.trackerEntry.startDate.month,
+    );
+    final current = DateTime(now.year, now.month);
+
+    // Build list of all months from start → now
+    _months = [];
+    DateTime m = start;
+    while (!m.isAfter(current)) {
+      _months.add(m);
+      m = DateTime(m.year, m.month + 1);
+    }
+    if (_months.isEmpty) _months = [current];
+
+    _pageIndex = _months.length - 1; // Start at current month
+    _displayMonth = _months[_pageIndex];
+    _pageController = PageController(initialPage: _pageIndex);
   }
 
-  void _prevMonth() => setState(
-    () => _displayMonth = DateTime(_displayMonth.year, _displayMonth.month - 1),
-  );
-
-  void _nextMonth() {
-    final now = DateTime.now();
-    final next = DateTime(_displayMonth.year, _displayMonth.month + 1);
-    if (next.isAfter(DateTime(now.year, now.month))) return;
-    setState(() => _displayMonth = next);
-  }
-
-  bool get _canGoNext {
-    final now = DateTime.now();
-    return _displayMonth.isBefore(DateTime(now.year, now.month));
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   Color _barColor(BuildContext context) {
@@ -124,13 +134,13 @@ class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: barColor.withValues(alpha: 0.12),
+                            color: surface,
+                            border: Border.all(
+                              color: theme.dividerColor,
+                              width: 1,
+                            ),
                             borderRadius: BorderRadius.circular(
                               AppSizes.radiusButton,
-                            ),
-                            border: Border.all(
-                              color: barColor.withValues(alpha: 0.3),
-                              width: 1,
                             ),
                           ),
                           child: Row(
@@ -139,7 +149,7 @@ class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
                               Icon(
                                 Icons.edit_rounded,
                                 size: 14,
-                                color: barColor,
+                                color: theme.colorScheme.primary,
                               ),
                               const SizedBox(width: 5),
                               Text(
@@ -147,7 +157,7 @@ class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
                                 style: TextStyle(
                                   fontSize: AppSizes.fontCaption,
                                   fontWeight: FontWeight.w700,
-                                  color: barColor,
+                                  color: theme.colorScheme.primary,
                                 ),
                               ),
                             ],
@@ -172,16 +182,16 @@ class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
                           children: [
                             _statCard(
                               context,
-                              icon: '🔥',
+
                               label: 'Current Streak',
-                              value: '${entry.currentStreak} days',
+                              value: '${entry.currentStreak}',
                               color: AppColors.warning,
                               surface: surface,
                             ),
                             const SizedBox(width: 10),
                             _statCard(
                               context,
-                              icon: '✅',
+
                               label: 'Total Done',
                               value: '${entry.doneDays} / ${entry.totalDays}',
                               color: AppColors.success,
@@ -195,7 +205,7 @@ class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
                         // ── Calendar card ───────────────────
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.all(18),
+                          // padding: const EdgeInsets.all(18),
                           decoration: BoxDecoration(
                             color: surface,
                             borderRadius: BorderRadius.circular(
@@ -213,111 +223,162 @@ class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
                           ),
                           child: Column(
                             children: [
-                              // Month navigation
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  _monthNavBtn(
-                                    context,
-                                    icon: Icons.chevron_left_rounded,
-                                    onTap: _prevMonth,
-                                    enabled: true,
-                                    surface: surface,
-                                    theme: theme,
-                                  ),
-                                  Column(
-                                    children: [
-                                      Text(
-                                        _monthName(_displayMonth.month),
-                                        style: theme.textTheme.titleMedium
-                                            ?.copyWith(fontSize: 18),
+                              // Month Header
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  16,
+                                  16,
+                                  0,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    GestureDetector(
+                                      onTap: _pageIndex > 0
+                                          ? () => _pageController.previousPage(
+                                              duration: const Duration(
+                                                milliseconds: 300,
+                                              ),
+                                              curve: Curves.easeInOut,
+                                            )
+                                          : null,
+                                      child: AnimatedOpacity(
+                                        opacity: _pageIndex > 0 ? 1.0 : 0.25,
+                                        duration: const Duration(
+                                          milliseconds: 200,
+                                        ),
+                                        child: Container(
+                                          width: 34,
+                                          height: 34,
+                                          decoration: BoxDecoration(
+                                            color: surface,
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                            border: Border.all(
+                                              color: theme.dividerColor,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            Icons.chevron_left_rounded,
+                                            size: 20,
+                                            color: theme.colorScheme.primary,
+                                          ),
+                                        ),
                                       ),
-                                      Text(
-                                        '${_displayMonth.year}',
-                                        style: theme.textTheme.labelSmall,
+                                    ),
+                                    Column(
+                                      children: [
+                                        Text(
+                                          _monthName(_displayMonth.month),
+                                          style: theme.textTheme.titleMedium
+                                              ?.copyWith(fontSize: 17),
+                                        ),
+                                        Text(
+                                          '${_displayMonth.year}',
+                                          style: theme.textTheme.labelSmall,
+                                        ),
+                                      ],
+                                    ),
+                                    GestureDetector(
+                                      onTap: _pageIndex < _months.length - 1
+                                          ? () => _pageController.nextPage(
+                                              duration: const Duration(
+                                                milliseconds: 300,
+                                              ),
+                                              curve: Curves.easeInOut,
+                                            )
+                                          : null,
+                                      child: AnimatedOpacity(
+                                        opacity: _pageIndex < _months.length - 1
+                                            ? 1.0
+                                            : 0.25,
+                                        duration: const Duration(
+                                          milliseconds: 200,
+                                        ),
+                                        child: Container(
+                                          width: 34,
+                                          height: 34,
+                                          decoration: BoxDecoration(
+                                            color: surface,
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                            border: Border.all(
+                                              color: theme.dividerColor,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            Icons.chevron_right_rounded,
+                                            size: 20,
+                                            color: theme.colorScheme.primary,
+                                          ),
+                                        ),
                                       ),
-                                    ],
-                                  ),
-                                  _monthNavBtn(
-                                    context,
-                                    icon: Icons.chevron_right_rounded,
-                                    onTap: _canGoNext ? _nextMonth : null,
-                                    enabled: _canGoNext,
-                                    surface: surface,
-                                    theme: theme,
-                                  ),
-                                ],
+                                    ),
+                                  ],
+                                ),
                               ),
 
-                              const SizedBox(height: 18),
+                              const SizedBox(height: 14),
 
                               // Weekday headers
-                              Row(
-                                children:
-                                    [
-                                          'Mon',
-                                          'Tue',
-                                          'Wed',
-                                          'Thu',
-                                          'Fri',
-                                          'Sat',
-                                          'Sun',
-                                        ]
-                                        .map(
-                                          (d) => Expanded(
-                                            child: Center(
-                                              child: Text(
-                                                d,
-                                                style: TextStyle(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: _subtextColor(context),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                                child: Row(
+                                  children:
+                                      [
+                                            'Mon',
+                                            'Tue',
+                                            'Wed',
+                                            'Thu',
+                                            'Fri',
+                                            'Sat',
+                                            'Sun',
+                                          ]
+                                          .map(
+                                            (d) => Expanded(
+                                              child: Center(
+                                                child: Text(
+                                                  d,
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: _subtextColor(
+                                                      context,
+                                                    ),
+                                                  ),
                                                 ),
                                               ),
                                             ),
-                                          ),
-                                        )
-                                        .toList(),
+                                          )
+                                          .toList(),
+                                ),
                               ),
 
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 8),
 
-                              // Calendar grid
-                              _buildCalendarGrid(context, entry, barColor),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        // ── Legend ──────────────────────────
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: surface,
-                            borderRadius: BorderRadius.circular(
-                              AppSizes.radiusButton,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _legendItem(barColor, 'Done'),
-                              const SizedBox(width: 20),
-                              _legendItem(
-                                AppColors.danger.withValues(alpha: 0.4),
-                                'Missed',
-                              ),
-                              const SizedBox(width: 20),
-                              _legendItem(
-                                isDark
-                                    ? AppColors.darkDivider
-                                    : AppColors.lightDivider,
-                                'Future / N/A',
+                              // Calendar Pages Swipable
+                              SizedBox(
+                                height: _calendarHeight(),
+                                child: PageView.builder(
+                                  controller: _pageController,
+                                  itemCount: _months.length,
+                                  onPageChanged: (i) => setState(() {
+                                    _pageIndex = i;
+                                    _displayMonth = _months[i];
+                                  }),
+                                  itemBuilder: (_, i) => _buildCalendarPage(
+                                    context,
+                                    entry,
+                                    barColor,
+                                    _months[i],
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -362,16 +423,21 @@ class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
     );
   }
 
-  Widget _buildCalendarGrid(
+  // Calculate a fixed height that fits 6 rows max
+  double _calendarHeight() => 6 * 48.0;
+
+  Widget _buildCalendarPage(
     BuildContext context,
     Tracker entry,
     Color barColor,
+    DateTime monthDate,
   ) {
-    final year = _displayMonth.year;
-    final month = _displayMonth.month;
+    final year = monthDate.year;
+    final month = monthDate.month;
     final daysInMonth = DateUtils.getDaysInMonth(year, month);
     final firstDay = DateTime(year, month, 1);
-    final leadingEmpties = (firstDay.weekday - 1) % 7; // Mon = 0
+    // Sunday = 0 offset
+    final leadingEmpties = firstDay.weekday % 7;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final startDate = DateTime(
@@ -383,97 +449,163 @@ class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
     final totalCells = leadingEmpties + daysInMonth;
     final rows = (totalCells / 7).ceil();
 
-    return Column(
-      children: List.generate(rows, (rowIndex) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: Row(
-            children: List.generate(7, (colIndex) {
-              final cellIndex = rowIndex * 7 + colIndex;
-              if (cellIndex < leadingEmpties ||
-                  cellIndex >= leadingEmpties + daysInMonth) {
-                return const Expanded(child: SizedBox());
-              }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Column(
+        children: List.generate(rows, (rowIndex) {
+          // Collect all 7 cells info for this row (needed for connector logic)
+          final cells = List.generate(7, (colIndex) {
+            final cellIndex = rowIndex * 7 + colIndex;
+            if (cellIndex < leadingEmpties ||
+                cellIndex >= leadingEmpties + daysInMonth) {
+              return null; // empty cell
+            }
+            final dayNum = cellIndex - leadingEmpties + 1;
+            final date = DateTime(year, month, dayNum);
+            final isToday = date == today;
+            final isFuture = date.isAfter(today);
+            final isBeforeStart = date.isBefore(startDate);
+            final done = entry.isDayOn(date);
+            return {
+              'dayNum': dayNum,
+              'date': date,
+              'isToday': isToday,
+              'isFuture': isFuture,
+              'isBeforeStart': isBeforeStart,
+              'done': done,
+            };
+          });
 
-              final dayNum = cellIndex - leadingEmpties + 1;
-              final date = DateTime(year, month, dayNum);
-              final isToday = date == today;
-              final isFuture = date.isAfter(today);
-              final isBeforeStart = date.isBefore(startDate);
-              final done = entry.isDayOn(date);
-              final isCurrentMonth = date.month == _displayMonth.month;
+          return SizedBox(
+            height: 48,
+            child: Row(
+              children: List.generate(7, (colIndex) {
+                final cell = cells[colIndex];
+                if (cell == null) return const Expanded(child: SizedBox());
 
-              return Expanded(
-                child: GestureDetector(
-                  onTap: isBeforeStart || isFuture || !isCurrentMonth
-                      ? null
-                      : () => context.read<TrackerProvider>().toggleDate(
-                          entry.id,
-                          date,
-                        ),
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                    height: 36,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      color: isBeforeStart || isFuture
-                          ? Colors.transparent
-                          : done
-                          ? barColor.withValues(alpha: 0.85)
-                          : AppColors.danger.withValues(alpha: 0.12),
-                      border: isToday
-                          ? Border.all(color: barColor, width: 2)
-                          : isBeforeStart || isFuture
-                          ? null
-                          : Border.all(
-                              color: done
-                                  ? barColor.withValues(alpha: 0.6)
-                                  : AppColors.danger.withValues(alpha: 0.25),
-                              width: 1,
-                            ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                final dayNum = cell['dayNum'] as int;
+                final date = cell['date'] as DateTime;
+                final isToday = cell['isToday'] as bool;
+                final isFuture = cell['isFuture'] as bool;
+                final isBeforeStart = cell['isBeforeStart'] as bool;
+                final done = cell['done'] as bool;
+                final inactive = isBeforeStart || isFuture;
+
+                // Determine left/right connectors for done dates
+                final prevCell = colIndex > 0 ? cells[colIndex - 1] : null;
+                final nextCell = colIndex < 6 ? cells[colIndex + 1] : null;
+                final prevDone =
+                    prevCell != null &&
+                    (prevCell['done'] as bool) &&
+                    !(prevCell['isBeforeStart'] as bool) &&
+                    !(prevCell['isFuture'] as bool);
+                final nextDone =
+                    nextCell != null &&
+                    (nextCell['done'] as bool) &&
+                    !(nextCell['isBeforeStart'] as bool) &&
+                    !(nextCell['isFuture'] as bool);
+
+                final showLeftConnector = done && prevDone && !inactive;
+                final showRightConnector = done && nextDone && !inactive;
+
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: inactive
+                        ? null
+                        : () => context.read<TrackerProvider>().toggleDate(
+                            entry.id,
+                            date,
+                          ),
+                    child: Stack(
+                      alignment: Alignment.center,
                       children: [
-                        Text(
-                          '$dayNum',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: isToday
-                                ? FontWeight.w900
-                                : FontWeight.w600,
-                            color: isBeforeStart || isFuture
-                                ? _subtextColor(context).withValues(alpha: 0.3)
+                        // Left connector bar
+                        if (showLeftConnector)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: FractionallySizedBox(
+                              widthFactor: 0.5,
+                              child: Container(
+                                height: 34,
+                                color: barColor.withValues(alpha: 0.25),
+                              ),
+                            ),
+                          ),
+
+                        // Right connector bar
+                        if (showRightConnector)
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: FractionallySizedBox(
+                              widthFactor: 0.5,
+                              child: Container(
+                                height: 34,
+                                color: barColor.withValues(alpha: 0.25),
+                              ),
+                            ),
+                          ),
+
+                        // The circle
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          transform: Matrix4.identity()
+                            ..scaleByDouble(
+                              done ? 1.05 : 1.0,
+                              done ? 1.05 : 1.0,
+                              1.0,
+                              1.0,
+                            ),
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: inactive
+                                ? Colors.transparent
                                 : done
-                                ? Colors.white
-                                : isToday
                                 ? barColor
-                                : _subtextColor(context),
+                                : Colors.transparent,
+                            border: isToday && !done
+                                ? Border.all(
+                                    color: barColor.withValues(alpha: 0.8),
+                                    width: 1.8,
+                                  )
+                                : null,
+                          ),
+                          child: Center(
+                            child: Text(
+                              '$dayNum',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: isToday
+                                    ? FontWeight.w900
+                                    : FontWeight.w600,
+                                color: inactive
+                                    ? _subtextColor(
+                                        context,
+                                      ).withValues(alpha: 0.3)
+                                    : done
+                                    ? Colors.white
+                                    : isToday
+                                    ? barColor
+                                    : _subtextColor(context),
+                              ),
+                            ),
                           ),
                         ),
-                        if (!isBeforeStart && !isFuture)
-                          Icon(
-                            done ? Icons.check_rounded : Icons.close_rounded,
-                            size: 9,
-                            color: done
-                                ? Colors.white70
-                                : AppColors.danger.withValues(alpha: 0.4),
-                          ),
                       ],
                     ),
                   ),
-                ),
-              );
-            }),
-          ),
-        );
-      }),
+                );
+              }),
+            ),
+          );
+        }),
+      ),
     );
   }
 
   Widget _statCard(
     BuildContext context, {
-    required String icon,
     required String label,
     required String value,
     required Color color,
@@ -501,8 +633,8 @@ class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(icon, style: const TextStyle(fontSize: 22)),
-            const SizedBox(height: 8),
+            Text(label, style: theme.textTheme.titleMedium),
+            const SizedBox(height: 2),
             Text(
               value,
               style: TextStyle(
@@ -511,68 +643,15 @@ class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
                 color: color,
               ),
             ),
-            const SizedBox(height: 2),
-            Text(label, style: theme.textTheme.labelSmall),
           ],
         ),
       ),
     );
   }
 
-  Widget _monthNavBtn(
-    BuildContext context, {
-    required IconData icon,
-    required VoidCallback? onTap,
-    required bool enabled,
-    required Color surface,
-    required ThemeData theme,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedOpacity(
-        opacity: enabled ? 1.0 : 0.3,
-        duration: const Duration(milliseconds: 200),
-        child: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: surface,
-            borderRadius: BorderRadius.circular(AppSizes.radiusSmall + 2),
-            border: Border.all(color: theme.dividerColor),
-          ),
-          child: Icon(icon, size: 20, color: theme.colorScheme.primary),
-        ),
-      ),
-    );
-  }
-
-  Widget _legendItem(Color color, String label) {
-    return Row(
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(3),
-          ),
-        ),
-        const SizedBox(width: 5),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            color: _subtextColor(context),
-          ),
-        ),
-      ],
-    );
-  }
-
   Color _subtextColor(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return isDark ? const Color(0xFF8890B0) : const Color(0xFF606878);
+    return isDark ? const Color(0xFFB0B8D0) : const Color(0xFF3A4255);
   }
 
   String _monthName(int month) {

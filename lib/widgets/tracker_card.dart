@@ -15,13 +15,14 @@ class TrackerCard extends StatelessWidget {
       AppColors.cardPalette[trackerEntry.colorIndex %
           AppColors.cardPalette.length],
     );
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    if (!isDark) return base;
-    final hsl = HSLColor.fromColor(base);
-    return hsl
-        .withLightness(0.17)
-        .withSaturation(hsl.saturation * 0.5)
-        .toColor();
+    return base;
+    // final isDark = Theme.of(context).brightness == Brightness.dark;
+    // if (!isDark) return base;
+    // final hsl = HSLColor.fromColor(base);
+    // return hsl
+    //     .withLightness(0.17)
+    //     .withSaturation(hsl.saturation * 0.5)
+    //     .toColor();
   }
 
   Color _barColor(BuildContext context) {
@@ -106,6 +107,7 @@ class TrackerCard extends StatelessWidget {
                             child: Text(
                               entry.title,
                               style: theme.textTheme.titleMedium?.copyWith(
+                                color: AppColors.lightPrimary,
                                 decoration: entry.isArchived
                                     ? TextDecoration.lineThrough
                                     : null,
@@ -114,10 +116,10 @@ class TrackerCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          if (entry.currentStreak > 0) ...[
-                            const SizedBox(width: 8),
-                            _streakBadge(entry.currentStreak),
-                          ],
+                          // if (entry.currentStreak > 0) ...[
+                          //   const SizedBox(width: 8),
+                          //   _streakBadge(entry.currentStreak),
+                          // ],
                         ],
                       ),
 
@@ -139,16 +141,6 @@ class TrackerCard extends StatelessWidget {
                       _sevenDayStrip(context, entry, barColor),
                     ],
                   ),
-                ),
-              ),
-
-              // ── Right arrow hint ─────────────────────
-              Padding(
-                padding: const EdgeInsets.only(right: 10),
-                child: Icon(
-                  Icons.chevron_right_rounded,
-                  size: 20,
-                  color: AppColors.subtextColor(context).withValues(alpha: 0.5),
                 ),
               ),
             ],
@@ -190,53 +182,14 @@ class TrackerCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            '${entry.doneDays}',
+            '${entry.doneDays} / ${entry.totalDays}',
             style: const TextStyle(
-              fontSize: 13,
+              fontSize: 16,
               fontWeight: FontWeight.w900,
               color: Colors.white,
-              height: 1.1,
+              height: 1.4,
             ),
-          ),
-          Container(
-            width: 16,
-            height: 1.5,
-            margin: const EdgeInsets.symmetric(vertical: 3),
-            color: Colors.white38,
-          ),
-          Text(
-            '${entry.totalDays}',
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
-              color: Colors.white70,
-              height: 1.1,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _streakBadge(int streak) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(AppSizes.radiusChip),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('🔥', style: TextStyle(fontSize: 10)),
-          const SizedBox(width: 3),
-          Text(
-            '$streak',
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              color: AppColors.warning,
-            ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -245,6 +198,10 @@ class TrackerCard extends StatelessWidget {
 
   Widget _sevenDayStrip(BuildContext context, Tracker entry, Color barColor) {
     final days = entry.last7Days.reversed.toList();
+    final doneColor = barColor;
+    final missedBorderColor = barColor.withValues(alpha: 0.5);
+    final missedBgColor = barColor.withValues(alpha: 0.12);
+
     return Row(
       children: days.map((d) {
         final date = d['date'] as DateTime;
@@ -257,10 +214,6 @@ class TrackerCard extends StatelessWidget {
         const dayNames = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
         final dayLabel = dayNames[date.weekday - 1];
 
-        // done = bar color, missed = bar color 20% opacity border
-        final doneColor = barColor;
-        final missedBorderColor = barColor.withValues(alpha: 0.5);
-        final missedBgColor = barColor.withValues(alpha: 0.12);
         return Expanded(
           child: Column(
             children: [
@@ -268,7 +221,7 @@ class TrackerCard extends StatelessWidget {
                 dayLabel,
                 style: TextStyle(
                   fontSize: 8,
-                  fontWeight: isToday ? FontWeight.w800 : FontWeight.w600,
+                  fontWeight: isToday ? FontWeight.w800 : FontWeight.w900,
                   color: isToday ? barColor : AppColors.subtextColor(context),
                 ),
               ),
@@ -291,7 +244,7 @@ class TrackerCard extends StatelessWidget {
                         : done
                         ? doneColor
                         : missedBgColor,
-                    border: isToday || isFuture
+                    border: isBeforeStart || isFuture
                         ? null
                         : Border.all(
                             color: done ? doneColor : missedBorderColor,
@@ -300,10 +253,15 @@ class TrackerCard extends StatelessWidget {
                   ),
                   child: isBeforeStart || isFuture
                       ? null
-                      : Icon(
-                          done ? Icons.check_rounded : Icons.close_rounded,
-                          size: 14,
-                          color: done ? Colors.white : missedBorderColor,
+                      : Center(
+                          child: Text(
+                            '${date.day}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: done ? Colors.white : doneColor,
+                            ),
+                          ),
                         ),
                 ),
               ),

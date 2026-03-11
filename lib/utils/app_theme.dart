@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AppColors {
   static const List<int> cardPalette = [
-    0xFFFFE0E0,
     0xFFD8ECFF,
     0xFFFFF3C4,
     0xFFEAE8FF,
