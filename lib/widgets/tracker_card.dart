@@ -9,7 +9,6 @@ import 'package:taskmanager/utils/app_theme.dart';
 ///
 /// Supported interactions:
 /// - Tap: Navigates to the habit tracker details screen.
-/// - Swipe Right: Archives/Completes the tracker entry.
 /// - Swipe Left: Deletes the tracker (with confirmation).
 /// - Day Tap: Toggles completion status for a specific date in the 7-day strip.
 class TrackerCard extends StatelessWidget {
@@ -46,14 +45,9 @@ class TrackerCard extends StatelessWidget {
 
     return Dismissible(
       key: Key(entry.id),
-      background: _swipeBg(isDelete: false),
+      direction: DismissDirection.endToStart,
       secondaryBackground: _swipeBg(isDelete: true),
       confirmDismiss: (dir) async {
-        if (dir == DismissDirection.startToEnd) {
-          // Archive (complete) the tracker on right swipe.
-          context.read<TrackerProvider>().archiveEntry(entry.id);
-          return false; // Don't dismiss from the list.
-        }
         // Confirm before deletion on left swipe.
         return await _confirmDelete(context);
       },
