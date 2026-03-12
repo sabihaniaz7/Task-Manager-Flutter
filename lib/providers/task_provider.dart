@@ -79,9 +79,14 @@ class TaskProvider extends ChangeNotifier {
   Future<void> loadTasks() async {
     _isLoading = true;
     notifyListeners();
-    _tasks = await _storage.loadTasks();
-    _isLoading = false;
-    notifyListeners();
+    try {
+      _tasks = await _storage.loadTasks();
+    } catch (e) {
+      // Error handled by UI via isLoading state or explicit feedback
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   /// Returns a new list containing the provided [tasks] sorted according to [_sortOption].
@@ -137,34 +142,38 @@ class TaskProvider extends ChangeNotifier {
     int reminderMinute = 0,
     int customDaysBefore = 1,
   }) async {
-    final id = _uuid.v4();
-    final notifStartId = DateTime.now().millisecondsSinceEpoch % 100000;
+    try {
+      final id = _uuid.v4();
+      final notifStartId = DateTime.now().millisecondsSinceEpoch % 100000;
 
-    // Leave a gap of 50 between tasks so daily reminders (up to 31 IDs)
-    // never collide with the next task's IDs.
-    final notifRemindId = notifStartId + 50;
+      // Leave a gap of 50 between tasks so daily reminders (up to 31 IDs)
+      // never collide with the next task's IDs.
+      final notifRemindId = notifStartId + 50;
 
-    final task = Task(
-      id: id,
-      title: title,
-      description: description,
-      startDate: startDate,
-      endDate: endDate,
-      createdAt: DateTime.now(),
-      colorIndex: _nextColorIndex(),
-      notificationStartId: notifStartId,
-      notificationReminderId: notifRemindId,
-      reminderMode: reminderMode,
-      reminderHour: reminderHour,
-      reminderMinute: reminderMinute,
-      customDaysBefore: customDaysBefore,
-    );
+      final task = Task(
+        id: id,
+        title: title,
+        description: description,
+        startDate: startDate,
+        endDate: endDate,
+        createdAt: DateTime.now(),
+        colorIndex: _nextColorIndex(),
+        notificationStartId: notifStartId,
+        notificationReminderId: notifRemindId,
+        reminderMode: reminderMode,
+        reminderHour: reminderHour,
+        reminderMinute: reminderMinute,
+        customDaysBefore: customDaysBefore,
+      );
 
-    _tasks.add(task);
-    await _storage.saveTasks(_tasks);
-    await _notifications.scheduleTaskNotifications(task);
-    await _refreshWidget();
-    notifyListeners();
+      _tasks.add(task);
+      await _storage.saveTasks(_tasks);
+      await _notifications.scheduleTaskNotifications(task);
+      await _refreshWidget();
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
   }
 
   /// Updates an existing [task]'s details.
@@ -172,19 +181,23 @@ class TaskProvider extends ChangeNotifier {
   /// Re-calculates and re-schedules notifications if the task is still active.
   /// If marked complete, all associated notifications are canceled.
   Future<void> updateTask(Task task) async {
-    final index = _tasks.indexWhere((t) => t.id == task.id);
-    if (index != -1) {
-      _tasks[index] = task;
-      await _storage.saveTasks(_tasks);
+    try {
+      final index = _tasks.indexWhere((t) => t.id == task.id);
+      if (index != -1) {
+        _tasks[index] = task;
+        await _storage.saveTasks(_tasks);
 
-      if (!task.isCompleted) {
-        await _notifications.scheduleTaskNotifications(task);
-      } else {
-        await _notifications.cancelTaskNotifications(task);
+        if (!task.isCompleted) {
+          await _notifications.scheduleTaskNotifications(task);
+        } else {
+          await _notifications.cancelTaskNotifications(task);
+        }
+
+        await _refreshWidget();
+        notifyListeners();
       }
-
-      await _refreshWidget();
-      notifyListeners();
+    } catch (e) {
+      rethrow;
     }
   }
 
@@ -192,36 +205,44 @@ class TaskProvider extends ChangeNotifier {
   ///
   /// Automatically handles notification cancellation/re-scheduling as needed.
   Future<void> toggleComplete(String id) async {
-    final index = _tasks.indexWhere((t) => t.id == id);
-    if (index != -1) {
-      _tasks[index] = _tasks[index].copyWith(
-        isCompleted: !_tasks[index].isCompleted,
-      );
-      await _storage.saveTasks(_tasks);
+    try {
+      final index = _tasks.indexWhere((t) => t.id == id);
+      if (index != -1) {
+        _tasks[index] = _tasks[index].copyWith(
+          isCompleted: !_tasks[index].isCompleted,
+        );
+        await _storage.saveTasks(_tasks);
 
-      if (_tasks[index].isCompleted) {
-        await _notifications.cancelTaskNotifications(_tasks[index]);
-      } else {
-        await _notifications.scheduleTaskNotifications(_tasks[index]);
+        if (_tasks[index].isCompleted) {
+          await _notifications.cancelTaskNotifications(_tasks[index]);
+        } else {
+          await _notifications.scheduleTaskNotifications(_tasks[index]);
+        }
+
+        await _refreshWidget();
+        notifyListeners();
       }
-
-      await _refreshWidget();
-      notifyListeners();
+    } catch (e) {
+      rethrow;
     }
   }
 
   /// Permanently deletes a task by its [id] and cancels all pending notifications.
   Future<void> deleteTask(String id) async {
-    final taskIndex = _tasks.indexWhere((t) => t.id == id);
-    if (taskIndex == -1) return;
+    try {
+      final taskIndex = _tasks.indexWhere((t) => t.id == id);
+      if (taskIndex == -1) return;
 
-    final task = _tasks[taskIndex];
-    await _notifications.cancelTaskNotifications(task);
-    _tasks.removeAt(taskIndex);
+      final task = _tasks[taskIndex];
+      await _notifications.cancelTaskNotifications(task);
+      _tasks.removeAt(taskIndex);
 
-    await _storage.saveTasks(_tasks);
-    await _refreshWidget();
-    notifyListeners();
+      await _storage.saveTasks(_tasks);
+      await _refreshWidget();
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
   }
 
   /// Changes the [sortOption] and triggers a UI rebuild with the new ordering.

@@ -475,12 +475,34 @@ class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
 
                 return Expanded(
                   child: GestureDetector(
-                    onTap: inactive
-                        ? null
-                        : () => context.read<TrackerProvider>().toggleDate(
-                            entry.id,
-                            date,
-                          ),
+                    onTap: () async {
+                      try {
+                        await context.read<TrackerProvider>().toggleDate(
+                          entry.id,
+                          date,
+                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                entry.isDayOn(date)
+                                    ? 'Entry removed'
+                                    : 'Goal accomplished for today!',
+                              ),
+                              duration: const Duration(seconds: 1),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Failed to update goal'),
+                            ),
+                          );
+                        }
+                      }
+                    },
                     child: Stack(
                       alignment: Alignment.center,
                       children: [

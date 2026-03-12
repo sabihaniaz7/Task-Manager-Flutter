@@ -107,8 +107,25 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
       customDaysBefore: _customDays,
     );
 
-    await context.read<TaskProvider>().updateTask(updated);
-    if (mounted) Navigator.pop(context);
+    try {
+      await context.read<TaskProvider>().updateTask(updated);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Changes saved successfully')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to update task. Please try again.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   @override

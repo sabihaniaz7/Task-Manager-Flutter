@@ -90,20 +90,35 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       }
     }
 
-    if (!mounted) return;
+    try {
+      if (!mounted) return;
 
-    await context.read<TaskProvider>().addTask(
-      title: _titleController.text.trim(),
-      description: _descriptionController.text.trim(),
-      startDate: _startDate,
-      endDate: _endDate,
-      reminderMode: _reminderMode,
-      reminderHour: _reminderTime.hour,
-      reminderMinute: _reminderTime.minute,
-      customDaysBefore: _customDays,
-    );
+      await context.read<TaskProvider>().addTask(
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        startDate: _startDate,
+        endDate: _endDate,
+        reminderMode: _reminderMode,
+        reminderHour: _reminderTime.hour,
+        reminderMinute: _reminderTime.minute,
+        customDaysBefore: _customDays,
+      );
 
-    if (mounted) Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Task added successfully')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to save task. Please try again.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   /// Displays a custom dialog explaining why notification permissions are needed.

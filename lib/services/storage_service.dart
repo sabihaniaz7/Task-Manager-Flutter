@@ -12,17 +12,26 @@ class StorageService {
   ///
   /// Returns an empty list if no tasks are found.
   Future<List<Task>> loadTasks() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String> tasksStrings = prefs.getStringList(_tasksKey) ?? [];
-    return tasksStrings
-        .map((taskString) => Task.fromJsonString(taskString))
-        .toList();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<String> tasksStrings = prefs.getStringList(_tasksKey) ?? [];
+      return tasksStrings
+          .map((taskString) => Task.fromJsonString(taskString))
+          .toList();
+    } catch (e) {
+      // Return empty list to prevent crash; error handled by consumer if needed
+      return [];
+    }
   }
 
   /// Saves the provided list of [tasks] to local storage.
   Future<void> saveTasks(List<Task> tasks) async {
-    final prefs = await SharedPreferences.getInstance();
-    final taskStrings = tasks.map((task) => task.toJsonString()).toList();
-    await prefs.setStringList(_tasksKey, taskStrings);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final taskStrings = tasks.map((task) => task.toJsonString()).toList();
+      await prefs.setStringList(_tasksKey, taskStrings);
+    } catch (e) {
+      rethrow; // Rethrow to let provider handle UI feedback
+    }
   }
 }

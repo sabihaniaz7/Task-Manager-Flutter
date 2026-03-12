@@ -55,22 +55,30 @@ class TrackerProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    final prefs = await SharedPreferences.getInstance();
-    final list = prefs.getStringList(_storageKey) ?? [];
-    _entries = list.map((s) => Tracker.fromJsonString(s)).toList();
-    
-    _isLoading = false;
-    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = prefs.getStringList(_storageKey) ?? [];
+      _entries = list.map((s) => Tracker.fromJsonString(s)).toList();
+    } catch (e) {
+      // Error handled by UI via isLoading state
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   /// Serializes and persists the current list of trackers to [SharedPreferences].
   Future<void> _save() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(
-      _storageKey,
-      _entries.map((t) => t.toJsonString()).toList(),
-    );
-    await _refreshWidget();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(
+        _storageKey,
+        _entries.map((t) => t.toJsonString()).toList(),
+      );
+      await _refreshWidget();
+    } catch (e) {
+      rethrow;
+    }
   }
 
   /// Determines the next available color index from the theme palette.
@@ -99,40 +107,48 @@ class TrackerProvider extends ChangeNotifier {
     int reminderHour = 9,
     int reminderMinute = 0,
   }) async {
-    // Generate a unique notification ID (starting from 200,000 to avoid collision with Tasks)
-    final notifId = DateTime.now().millisecondsSinceEpoch % 100000 + 200000;
+    try {
+      // Generate a unique notification ID (starting from 200,000 to avoid collision with Tasks)
+      final notifId = DateTime.now().millisecondsSinceEpoch % 100000 + 200000;
 
-    final entry = Tracker(
-      id: _uuid.v4(),
-      title: title,
-      description: description,
-      colorIndex: _nextColorIndex(),
-      startDate: DateTime.now(),
-      reminderEnabled: reminderEnabled,
-      reminderHour: reminderHour,
-      reminderMinute: reminderMinute,
-      notificationId: notifId,
-    );
-    
-    _entries.add(entry);
-    await _save();
-    await _notifications.scheduleTrackerNotifications(entry);
-    notifyListeners();
+      final entry = Tracker(
+        id: _uuid.v4(),
+        title: title,
+        description: description,
+        colorIndex: _nextColorIndex(),
+        startDate: DateTime.now(),
+        reminderEnabled: reminderEnabled,
+        reminderHour: reminderHour,
+        reminderMinute: reminderMinute,
+        notificationId: notifId,
+      );
+
+      _entries.add(entry);
+      await _save();
+      await _notifications.scheduleTrackerNotifications(entry);
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
   }
 
   /// Updates an existing tracker's configuration.
   ///
   /// Automatically re-schedules notifications if reminder settings have changed.
   Future<void> updateEntry(Tracker entry) async {
-    final i = _entries.indexWhere((t) => t.id == entry.id);
-    if (i != -1) {
-      _entries[i] = entry;
-      await _save();
-      
-      // Reschedule notifications to reflect potential changes in time or status.
-      await _notifications.cancelTrackerNotifications(entry);
-      await _notifications.scheduleTrackerNotifications(entry);
-      notifyListeners();
+    try {
+      final i = _entries.indexWhere((t) => t.id == entry.id);
+      if (i != -1) {
+        _entries[i] = entry;
+        await _save();
+
+        // Reschedule notifications to reflect potential changes in time or status.
+        await _notifications.cancelTrackerNotifications(entry);
+        await _notifications.scheduleTrackerNotifications(entry);
+        notifyListeners();
+      }
+    } catch (e) {
+      rethrow;
     }
   }
 
@@ -140,37 +156,49 @@ class TrackerProvider extends ChangeNotifier {
   ///
   /// This is the primary method for recording daily habit success.
   Future<void> toggleDate(String id, DateTime date) async {
-    final i = _entries.indexWhere((t) => t.id == id);
-    if (i != -1) {
-      _entries[i].toggleDate(date);
-      await _save();
-      notifyListeners();
+    try {
+      final i = _entries.indexWhere((t) => t.id == id);
+      if (i != -1) {
+        _entries[i].toggleDate(date);
+        await _save();
+        notifyListeners();
+      }
+    } catch (e) {
+      rethrow;
     }
   }
 
   /// Permanently removes a tracker and cancels all associated notifications.
   Future<void> deleteEntry(String id) async {
-    final entryIndex = _entries.indexWhere((t) => t.id == id);
-    if (entryIndex == -1) return;
-    
-    final entry = _entries[entryIndex];
-    await _notifications.cancelTrackerNotifications(entry);
-    _entries.removeAt(entryIndex);
-    
-    await _save();
-    notifyListeners();
+    try {
+      final entryIndex = _entries.indexWhere((t) => t.id == id);
+      if (entryIndex == -1) return;
+
+      final entry = _entries[entryIndex];
+      await _notifications.cancelTrackerNotifications(entry);
+      _entries.removeAt(entryIndex);
+
+      await _save();
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
   }
 
   /// Moves a tracker to the archive and cancels its active notifications.
   ///
   /// Archived trackers are preserved in storage but not shown in the primary dashboard.
   Future<void> archiveEntry(String id) async {
-    final i = _entries.indexWhere((t) => t.id == id);
-    if (i != -1) {
-      await _notifications.cancelTrackerNotifications(_entries[i]);
-      _entries[i] = _entries[i].copyWith(isArchived: true);
-      await _save();
-      notifyListeners();
+    try {
+      final i = _entries.indexWhere((t) => t.id == id);
+      if (i != -1) {
+        await _notifications.cancelTrackerNotifications(_entries[i]);
+        _entries[i] = _entries[i].copyWith(isArchived: true);
+        await _save();
+        notifyListeners();
+      }
+    } catch (e) {
+      rethrow;
     }
   }
 }

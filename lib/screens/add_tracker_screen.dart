@@ -64,10 +64,22 @@ class _AddTrackerScreenState extends State<AddTrackerScreen> {
         reminderMinute: _reminderTime.minute,
       );
 
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Goal added successfully')),
+        );
+        Navigator.pop(context);
+      }
     } catch (e) {
-      setState(() => _isSaving = false);
-      // Optional: Show error scaffold
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to add goal. Please try again.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
