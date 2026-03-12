@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:taskmanager/widgets/app_header.dart';
+import 'package:taskmanager/widgets/app_info_row.dart';
 import '../models/task.dart';
 import '../providers/task_provider.dart';
 import '../utils/app_theme.dart';
@@ -35,7 +37,7 @@ class TaskDetailScreen extends StatelessWidget {
   /// Returns a consistent subtext color for the current theme.
   Color _subtextColor(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return isDark ? const Color(0xFFB0B8D0) : const Color(0xFF3A4255);
+    return isDark ? AppColors.darkSubtext : AppColors.lightSubtext;
   }
 
   /// Generates a human-friendly label describing the task's reminder settings.
@@ -122,42 +124,11 @@ class TaskDetailScreen extends StatelessWidget {
         child: Column(
           children: [
             // Top Navigation Bar
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 12, 16, 0),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: surface,
-                        borderRadius: BorderRadius.circular(
-                          AppSizes.radiusSmall + 2,
-                        ),
-                        border: Border.all(color: theme.dividerColor),
-                      ),
-                      child: Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        size: 16,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      t.title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontSize: 18,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  _editButton(context, t, theme, surface),
-                ],
-              ),
+            AppHeader(
+              title: t.title,
+              actions: [
+                _editButton(context, t, theme, surface),
+              ],
             ),
 
             const SizedBox(height: 8),
@@ -462,25 +433,22 @@ class TaskDetailScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _infoRow(
-            context,
+          AppInfoRow(
             icon: Icons.calendar_today_rounded,
             label: 'Start Date',
             value: DateHelper.formatShort(t.startDate),
             barColor: theme.colorScheme.primary,
           ),
-          _divider(context),
-          _infoRow(
-            context,
+          const Divider(height: 1),
+          AppInfoRow(
             icon: Icons.event_rounded,
             label: 'Due Date',
             value: DateHelper.formatShort(t.endDate),
             barColor: theme.colorScheme.primary,
           ),
           if (t.reminderMode != ReminderMode.none) ...[
-            _divider(context),
-            _infoRow(
-              context,
+            const Divider(height: 1),
+            AppInfoRow(
               icon: Icons.notifications_rounded,
               label: 'Reminder',
               value: _reminderModeLabel(t),
@@ -488,20 +456,17 @@ class TaskDetailScreen extends StatelessWidget {
             ),
           ],
           if (t.isSingleDay) ...[
-            _divider(context),
-            _infoRow(
-              context,
+            const Divider(height: 1),
+            AppInfoRow(
               icon: Icons.flag_rounded,
               label: 'Status',
               value: statusText,
-              barColor: isOverdue
-                  ? AppColors.danger
-                  : theme.colorScheme.primary,
+              barColor: isOverdue ? AppColors.danger : theme.colorScheme.primary,
               valueColor: isOverdue
                   ? AppColors.danger
                   : t.isCompleted
-                  ? barColor
-                  : null,
+                      ? barColor
+                      : null,
             ),
           ],
         ],
@@ -550,57 +515,5 @@ class TaskDetailScreen extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  /// Builds a stylized row for the information grid.
-  Widget _infoRow(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color barColor,
-    Color? valueColor,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: barColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 15, color: barColor),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: AppSizes.fontCaption,
-                fontWeight: FontWeight.w600,
-                color: _subtextColor(context),
-              ),
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: AppSizes.fontCaption,
-              fontWeight: FontWeight.w700,
-              color:
-                  valueColor ?? Theme.of(context).textTheme.titleMedium?.color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Thin divider for separating info rows.
-  Widget _divider(BuildContext context) {
-    return Divider(height: 1, color: Theme.of(context).dividerColor);
   }
 }

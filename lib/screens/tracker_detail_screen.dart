@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import 'package:taskmanager/widgets/app_header.dart';
+import 'package:taskmanager/widgets/app_info_row.dart';
 import '../models/tracker.dart';
 import '../providers/tracker_provider.dart';
 import '../utils/app_theme.dart';
@@ -92,42 +95,9 @@ class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
             child: Column(
               children: [
                 // Top Navigation Bar
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 12, 16, 0),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color: surface,
-                            borderRadius: BorderRadius.circular(
-                              AppSizes.radiusSmall + 2,
-                            ),
-                            border: Border.all(color: theme.dividerColor),
-                          ),
-                          child: Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            size: 16,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          entry.title,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontSize: 18,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      _editButton(context, entry, theme, surface),
-                    ],
-                  ),
+                AppHeader(
+                  title: entry.title,
+                  actions: [_editButton(context, entry, theme, surface)],
                 ),
 
                 const SizedBox(height: 8),
@@ -138,6 +108,59 @@ class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // General Info
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: surface,
+                            borderRadius: BorderRadius.circular(
+                              AppSizes.radiusCard,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(
+                                  alpha: isDark ? 0.3 : 0.06,
+                                ),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              AppInfoRow(
+                                icon: Icons.calendar_today_rounded,
+                                label: 'Created On',
+                                value: _formatDate(entry.startDate),
+                                barColor: theme.colorScheme.primary,
+                              ),
+                              if (entry.reminderEnabled) ...[
+                                const Divider(height: 1),
+                                AppInfoRow(
+                                  icon: Icons.notifications_rounded,
+                                  label: 'Reminder',
+                                  value: _formatTime(
+                                    entry.reminderHour,
+                                    entry.reminderMinute,
+                                  ),
+                                  barColor: theme.colorScheme.primary,
+                                ),
+                              ],
+                              const Divider(height: 1),
+                              AppInfoRow(
+                                icon: Icons.trending_up_rounded,
+                                label: 'Success Rate',
+                                value:
+                                    '${((entry.doneDays / entry.totalDays) * 100).toStringAsFixed(0)}%',
+                                barColor: theme.colorScheme.primary,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
                         // Statistics Row (Streak and Total Completion)
                         Row(
                           children: [
@@ -617,9 +640,21 @@ class _TrackerDetailScreenState extends State<TrackerDetailScreen> {
     );
   }
 
+  /// Formats a [DateTime] into a friendly list display string (e.g., "Mar 12, 2024").
+  String _formatDate(DateTime d) => DateFormat('MMM d, yyyy').format(d);
+
+  /// Formats the reminder time into a 12-hour AM/PM string.
+  String _formatTime(int hour, int minute) {
+    final tod = TimeOfDay(hour: hour, minute: minute);
+    final h = tod.hourOfPeriod == 0 ? 12 : tod.hourOfPeriod;
+    final m = tod.minute.toString().padLeft(2, '0');
+    final p = tod.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$h:$m $p';
+  }
+
   Color _subtextColor(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return isDark ? const Color(0xFFB0B8D0) : const Color(0xFF3A4255);
+    return isDark ? AppColors.darkSubtext : AppColors.lightSubtext;
   }
 
   String _monthName(int month) {

@@ -75,6 +75,12 @@ class AppColors {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return isDark ? const Color(0xFF8890B0) : const Color(0xFF606878);
   }
+
+  /// Selects a specific label/subtext color for info rows.
+  static Color infoLabelColor(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark ? const Color(0xFFB0B8D0) : const Color(0xFF3A4255);
+  }
 }
 
 /// Centralizes all sizing, spacing, and typography constants used in the app.
@@ -344,6 +350,37 @@ class AppTheme {
       ),
     ),
   );
+  /// Shared input decoration for all text fields to ensure visual consistency.
+  static InputDecoration commonInputDecoration(BuildContext context, String hint) {
+    final theme = Theme.of(context);
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor),
+      filled: true,
+      fillColor: theme.colorScheme.surface,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppSizes.radiusButton),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppSizes.radiusButton),
+        borderSide: BorderSide(
+          color: theme.dividerColor.withValues(alpha: 0.3),
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppSizes.radiusButton),
+        borderSide: BorderSide(
+          color: theme.colorScheme.primary.withValues(alpha: 0.5),
+          width: 1.5,
+        ),
+      ),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.spacingL,
+        vertical: AppSizes.spacingM + 2,
+      ),
+    );
+  }
 }
 
 /// Manages and persists the user's preferred theme mode (Light/Dark/System).

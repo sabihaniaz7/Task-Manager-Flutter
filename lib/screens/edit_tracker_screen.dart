@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:taskmanager/models/tracker.dart';
 import 'package:taskmanager/providers/tracker_provider.dart';
 import 'package:taskmanager/utils/app_theme.dart';
+import 'package:taskmanager/widgets/app_button.dart';
+import 'package:taskmanager/widgets/app_header.dart';
+import 'package:taskmanager/widgets/app_label.dart';
 
 /// A screen for editing an existing habit [Tracker].
 ///
@@ -21,7 +24,7 @@ class EditTrackerScreen extends StatefulWidget {
 class _EditTrackerScreenState extends State<EditTrackerScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _titleController;
-  late TextEditingController _descController;
+  late TextEditingController _descriptionController;
 
   late bool _reminderEnabled;
   late TimeOfDay _reminderTime;
@@ -32,7 +35,7 @@ class _EditTrackerScreenState extends State<EditTrackerScreen> {
     super.initState();
     // Initialize controllers and state with existing tracker data.
     _titleController = TextEditingController(text: widget.trackerEntry.title);
-    _descController = TextEditingController(
+    _descriptionController = TextEditingController(
       text: widget.trackerEntry.description,
     );
     _reminderEnabled = widget.trackerEntry.reminderEnabled;
@@ -45,7 +48,7 @@ class _EditTrackerScreenState extends State<EditTrackerScreen> {
   @override
   void dispose() {
     _titleController.dispose();
-    _descController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -76,7 +79,7 @@ class _EditTrackerScreenState extends State<EditTrackerScreen> {
 
     final updated = widget.trackerEntry.copyWith(
       title: _titleController.text.trim(),
-      description: _descController.text.trim(),
+      description: _descriptionController.text.trim(),
       reminderEnabled: _reminderEnabled,
       reminderHour: _reminderTime.hour,
       reminderMinute: _reminderTime.minute,
@@ -92,15 +95,15 @@ class _EditTrackerScreenState extends State<EditTrackerScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Edit Tracker',
-          style: theme.textTheme.titleMedium?.copyWith(fontSize: 18),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.close_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
+      appBar: AppHeader(
+        title: 'Edit Goal',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.close_rounded),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+        showBackButton: false,
       ),
       body: Form(
         key: _formKey,
@@ -108,40 +111,43 @@ class _EditTrackerScreenState extends State<EditTrackerScreen> {
           padding: const EdgeInsets.all(AppSizes.spacingXL),
           children: [
             const SizedBox(height: AppSizes.spacingS),
-            _label(context, 'TRACKER TITLE *'),
-            const SizedBox(height: AppSizes.spacingS),
+            const AppLabel('TITLE *'),
+            const SizedBox(height: AppSizes.spacingXS),
             TextFormField(
               controller: _titleController,
+              autofocus: false,
               style: theme.textTheme.titleMedium,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(hintText: 'Tracker title...'),
+              decoration: AppTheme.commonInputDecoration(context, 'Drink water, Exercise...'),
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Title is required' : null,
             ),
-            const SizedBox(height: AppSizes.spacingXL),
+            const SizedBox(height: AppSizes.spacingL),
 
-            _label(context, 'DESCRIPTION'),
+            const AppLabel('DESCRIPTION'),
             const SizedBox(height: AppSizes.spacingS),
             TextFormField(
-              controller: _descController,
+              controller: _descriptionController,
               style: theme.textTheme.bodyMedium,
-              maxLines: 2,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                hintText: 'Optional details...',
-              ),
+              maxLines: 2,
+              decoration: AppTheme.commonInputDecoration(context, 'Optional Details...'),
             ),
-            const SizedBox(height: AppSizes.spacingXL),
+            const SizedBox(height: AppSizes.spacingL),
 
             // Reminder Configuration Section
-            _label(context, 'DAILY REMINDER'),
+            const AppLabel('DAILY REMINDER'),
             const SizedBox(height: AppSizes.spacingS),
             _reminderConfigCard(context, theme, isDark),
 
-            const SizedBox(height: AppSizes.spacingXXL + 8),
+            const SizedBox(height: AppSizes.spacingXL),
 
-            // Save Changes Button
-            _saveButton(theme, isDark),
+            // Save Button
+            AppButton(
+              text: 'Save Changes',
+              isLoading: _isSaving,
+              onPressed: _save,
+            ),
           ],
         ),
       ),
@@ -265,38 +271,4 @@ class _EditTrackerScreenState extends State<EditTrackerScreen> {
       ),
     );
   }
-
-  Widget _saveButton(ThemeData theme, bool isDark) {
-    return SizedBox(
-      width: double.infinity,
-      height: 54,
-      child: ElevatedButton(
-        onPressed: _isSaving ? null : _save,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: theme.colorScheme.primary,
-          foregroundColor: isDark ? AppColors.darkBg : Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppSizes.radiusButton),
-          ),
-          elevation: 0,
-        ),
-        child: _isSaving
-            ? const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Text(
-                'Save Changes',
-                style: TextStyle(
-                  fontSize: AppSizes.fontTitle,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-      ),
-    );
-  }
-
-  Widget _label(BuildContext context, String text) =>
-      Text(text, style: Theme.of(context).textTheme.labelMedium);
 }

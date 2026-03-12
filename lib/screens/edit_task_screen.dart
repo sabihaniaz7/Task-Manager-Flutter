@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:taskmanager/utils/app_theme.dart';
+import 'package:taskmanager/widgets/app_button.dart';
+import 'package:taskmanager/widgets/app_date_tile.dart';
+import 'package:taskmanager/widgets/app_header.dart';
+import 'package:taskmanager/widgets/app_label.dart';
 import 'package:taskmanager/widgets/reminder_section.dart';
 import '../models/task.dart';
 import '../providers/task_provider.dart';
-import '../utils/app_theme.dart';
 
 /// A screen that allows users to modify the details of an existing [Task].
 ///
@@ -132,58 +136,66 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Edit Task',
-          style: theme.textTheme.titleMedium?.copyWith(fontSize: 18),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.close_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
+      appBar: AppHeader(
+        title: 'Edit Task',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.close_rounded),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+        showBackButton: false,
       ),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(AppSizes.spacingXL),
           children: [
-            _label(context, 'TASK TITLE *'),
+            const AppLabel('TASK TITLE *'),
             const SizedBox(height: AppSizes.spacingS),
             TextFormField(
               controller: _titleController,
               style: theme.textTheme.titleMedium,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(hintText: 'Task title...'),
+              decoration: AppTheme.commonInputDecoration(context, 'Task title...'),
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Title is required' : null,
             ),
             const SizedBox(height: AppSizes.spacingXL),
-            _label(context, 'DESCRIPTION'),
+            const AppLabel('DESCRIPTION'),
             const SizedBox(height: AppSizes.spacingS),
             TextFormField(
               controller: _descriptionController,
               style: theme.textTheme.bodyMedium,
               maxLines: 3,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(hintText: 'Description...'),
+              decoration: AppTheme.commonInputDecoration(context, 'Description...'),
             ),
             const SizedBox(height: AppSizes.spacingXL),
-            _label(context, 'DURATION'),
+            const AppLabel('DURATION'),
             const SizedBox(height: AppSizes.spacingS),
             Row(
               children: [
                 Expanded(
-                  child: _dateTile(context, 'START DATE', _startDate, true),
+                  child: AppDateTile(
+                    label: 'START DATE',
+                    dateText: _formatDate(_startDate),
+                    onTap: () => _pickDate(true),
+                  ),
                 ),
                 const SizedBox(width: AppSizes.spacingXL),
                 Expanded(
-                  child: _dateTile(context, 'END DATE', _endDate, false),
+                  child: AppDateTile(
+                    label: 'END DATE',
+                    dateText: _formatDate(_endDate),
+                    onTap: () => _pickDate(false),
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: AppSizes.spacingXL),
             // Reminder Section
-            _label(context, 'REMINDER'),
+            const AppLabel('REMINDER'),
             const SizedBox(height: AppSizes.spacingS),
             ReminderSection(
               isSingleDay: _isSingleDay,
@@ -199,87 +211,13 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
               },
             ),
             const SizedBox(height: AppSizes.spacingXL),
-            _saveButton(theme),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Internal label for form sections.
-  Widget _label(BuildContext context, String text) {
-    return Text(text, style: Theme.of(context).textTheme.labelMedium);
-  }
-
-  /// Builds a clickable tile for date selection.
-  Widget _dateTile(
-    BuildContext context,
-    String label,
-    DateTime date,
-    bool isStart,
-  ) {
-    final theme = Theme.of(context);
-    return GestureDetector(
-      onTap: () => _pickDate(isStart),
-      child: Container(
-        padding: const EdgeInsets.all(AppSizes.spacingM + 2),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(AppSizes.radiusButton),
-          border: Border.all(color: theme.dividerColor),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: theme.textTheme.labelMedium),
-            const SizedBox(height: AppSizes.spacingS),
-            Row(
-              children: [
-                Icon(
-                  Icons.calendar_today_rounded,
-                  size: AppSizes.iconS,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: AppSizes.spacingXS + 2),
-                Text(_formatDate(date), style: theme.textTheme.titleMedium),
-              ],
+            AppButton(
+              text: 'Save Changes',
+              isLoading: _isSaving,
+              onPressed: _save,
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  /// Builds the main save button.
-  Widget _saveButton(ThemeData theme) {
-    return SizedBox(
-      width: double.infinity,
-      height: 54,
-      child: ElevatedButton(
-        onPressed: _isSaving ? null : _save,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: theme.colorScheme.primary,
-          foregroundColor: theme.brightness == Brightness.dark
-              ? AppColors.darkBg
-              : Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppSizes.radiusButton),
-          ),
-          elevation: 0,
-        ),
-        child: _isSaving
-            ? const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Text(
-                'Save Changes',
-                style: TextStyle(
-                  fontSize: AppSizes.fontTitle,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
       ),
     );
   }

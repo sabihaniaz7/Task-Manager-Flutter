@@ -5,6 +5,10 @@ import 'package:taskmanager/models/task.dart';
 import 'package:taskmanager/providers/task_provider.dart';
 import 'package:taskmanager/services/notification_service.dart';
 import 'package:taskmanager/utils/app_theme.dart';
+import 'package:taskmanager/widgets/app_button.dart';
+import 'package:taskmanager/widgets/app_date_tile.dart';
+import 'package:taskmanager/widgets/app_header.dart';
+import 'package:taskmanager/widgets/app_label.dart';
 import 'package:taskmanager/widgets/reminder_section.dart';
 
 /// A screen that allows users to create a new task with custom titles,
@@ -211,15 +215,15 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          "New Task",
-          style: theme.textTheme.titleMedium?.copyWith(fontSize: 18),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.close_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
+      appBar: AppHeader(
+        title: "New Task",
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.close_rounded),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+        showBackButton: false, // Using custom close button instead
       ),
       body: Form(
         key: _formKey,
@@ -231,50 +235,53 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
             AppSizes.spacingXL + MediaQuery.of(context).padding.bottom + 16,
           ),
           children: [
-            _fieldLabel(context, 'TASK TITLE *'),
+            const AppLabel('TASK TITLE *'),
             const SizedBox(height: AppSizes.spacingS),
             TextFormField(
               controller: _titleController,
               autofocus: false,
-              decoration: _inputDecoration(context, 'Enter task title...'),
+              decoration: AppTheme.commonInputDecoration(context, 'Enter task title...'),
               style: theme.textTheme.titleMedium,
               textCapitalization: TextCapitalization.sentences,
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Title is required' : null,
             ),
             const SizedBox(height: AppSizes.spacingXL),
-            _fieldLabel(context, "DESCRIPTION"),
+            const AppLabel("DESCRIPTION"),
             const SizedBox(height: AppSizes.spacingS),
             TextFormField(
               controller: _descriptionController,
-              decoration: _inputDecoration(context, 'Add a description...'),
+              decoration: AppTheme.commonInputDecoration(context, 'Add a description...'),
               style: theme.textTheme.bodyMedium,
               maxLines: 3,
               textCapitalization: TextCapitalization.sentences,
             ),
             const SizedBox(height: AppSizes.spacingXL),
             // --Date Pickers --
-            _fieldLabel(context, 'DURATION'),
+            const AppLabel('DURATION'),
             const SizedBox(height: AppSizes.spacingS),
             Row(
               children: [
                 Expanded(
-                  child: _buildDateTile(
-                    context,
-                    'START DATE',
-                    _startDate,
-                    true,
+                  child: AppDateTile(
+                    label: 'START DATE',
+                    dateText: _formatDate(_startDate),
+                    onTap: () => _pickDate(true),
                   ),
                 ),
                 const SizedBox(width: AppSizes.spacingXL),
                 Expanded(
-                  child: _buildDateTile(context, 'END DATE', _endDate, false),
+                  child: AppDateTile(
+                    label: 'END DATE',
+                    dateText: _formatDate(_endDate),
+                    onTap: () => _pickDate(false),
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: AppSizes.spacingXL),
             // --Reminder --
-            _fieldLabel(context, 'REMINDER'),
+            const AppLabel('REMINDER'),
             const SizedBox(height: AppSizes.spacingS),
             ReminderSection(
               isSingleDay: _isSingleDay,
@@ -290,119 +297,13 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
               },
             ),
             const SizedBox(height: AppSizes.spacingXL),
-            _saveButton(theme),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Internal label for form sections.
-  Widget _fieldLabel(BuildContext context, String text) {
-    return Text(text, style: Theme.of(context).textTheme.labelMedium);
-  }
-
-  /// Reusable input decoration for text fields.
-  InputDecoration _inputDecoration(BuildContext context, String hint) {
-    final theme = Theme.of(context);
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor),
-      filled: true,
-      fillColor: theme.colorScheme.surface,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSizes.radiusButton),
-        borderSide: BorderSide.none,
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSizes.radiusButton),
-        borderSide: BorderSide(
-          color: theme.dividerColor.withValues(alpha: 0.3),
-        ),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSizes.radiusButton),
-        borderSide: BorderSide(
-          color: theme.colorScheme.primary.withValues(alpha: 0.5),
-          width: 1.5,
-        ),
-      ),
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: AppSizes.spacingL,
-        vertical: AppSizes.spacingM + 2,
-      ),
-    );
-  }
-
-  /// Builds a clickable tile for date selection.
-  Widget _buildDateTile(
-    BuildContext context,
-    String label,
-    DateTime date,
-    bool isStart,
-  ) {
-    final theme = Theme.of(context);
-    return GestureDetector(
-      onTap: () => _pickDate(isStart),
-      child: Container(
-        padding: const EdgeInsets.all(AppSizes.spacingM + 2),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(AppSizes.radiusButton),
-          border: Border.all(color: theme.dividerColor),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: theme.textTheme.labelSmall),
-            const SizedBox(height: AppSizes.spacingS),
-            Row(
-              children: [
-                Icon(
-                  Icons.calendar_today_rounded,
-                  size: AppSizes.iconS,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: AppSizes.spacingXS + 2),
-                Text(_formatDate(date), style: theme.textTheme.titleMedium),
-              ],
+            AppButton(
+              text: 'Save Task',
+              isLoading: _isSaving,
+              onPressed: _saveTask,
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  /// Builds the main save button.
-  Widget _saveButton(ThemeData theme) {
-    return SizedBox(
-      width: double.infinity,
-      height: 54,
-      child: ElevatedButton(
-        onPressed: _isSaving ? null : _saveTask,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: theme.colorScheme.primary,
-          foregroundColor: theme.brightness == Brightness.dark
-              ? AppColors.darkBg
-              : Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppSizes.radiusButton),
-          ),
-          elevation: 0,
-        ),
-        child: _isSaving
-            ? const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Text(
-                'Save Task',
-                style: TextStyle(
-                  fontSize: AppSizes.fontTitle,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
       ),
     );
   }

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:taskmanager/providers/tracker_provider.dart';
 import 'package:taskmanager/utils/app_theme.dart';
+import 'package:taskmanager/widgets/app_button.dart';
+import 'package:taskmanager/widgets/app_header.dart';
+import 'package:taskmanager/widgets/app_label.dart';
 
 /// A screen for creating a new [Tracker] (habit/goal).
 ///
@@ -89,15 +92,15 @@ class _AddTrackerScreenState extends State<AddTrackerScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'New Goal',
-          style: theme.textTheme.titleMedium?.copyWith(fontSize: 18),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.close_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
+      appBar: AppHeader(
+        title: 'New Goal',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.close_rounded),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+        showBackButton: false,
       ),
       body: Form(
         key: _formKey,
@@ -105,43 +108,45 @@ class _AddTrackerScreenState extends State<AddTrackerScreen> {
           padding: const EdgeInsets.all(AppSizes.spacingXL),
           children: [
             const SizedBox(height: AppSizes.spacingS),
-            _label(context, 'TITLE *'),
+            const AppLabel('TITLE *'),
             const SizedBox(height: AppSizes.spacingXS),
             TextFormField(
               controller: _titleController,
               autofocus: false,
               style: theme.textTheme.titleMedium,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                hintText: 'Drink water, Exercise...',
+              decoration: AppTheme.commonInputDecoration(
+                context,
+                'Drink water, Exercise...',
               ),
               validator: (v) =>
                   (v == null || v.trim().isEmpty) ? 'Title is required' : null,
             ),
             const SizedBox(height: AppSizes.spacingL),
 
-            _label(context, 'DESCRIPTION'),
+            const AppLabel('DESCRIPTION'),
             const SizedBox(height: AppSizes.spacingS),
             TextFormField(
               controller: _descriptionController,
               style: theme.textTheme.bodyMedium,
               textCapitalization: TextCapitalization.sentences,
               maxLines: 2,
-              decoration: const InputDecoration(
-                hintText: 'Optional Details...',
+              decoration: AppTheme.commonInputDecoration(
+                context,
+                'Optional Details...',
               ),
             ),
             const SizedBox(height: AppSizes.spacingL),
 
             // Reminder Configuration Section
-            _label(context, 'DAILY REMINDER'),
+            const AppLabel('DAILY REMINDER'),
             const SizedBox(height: AppSizes.spacingS),
             _reminderConfigCard(context, theme, isDark),
 
             const SizedBox(height: AppSizes.spacingXL),
 
             // Save Button
-            _saveButton(theme, isDark),
+            AppButton(text: 'Save', isLoading: _isSaving, onPressed: _save),
           ],
         ),
       ),
@@ -265,38 +270,4 @@ class _AddTrackerScreenState extends State<AddTrackerScreen> {
       ),
     );
   }
-
-  Widget _saveButton(ThemeData theme, bool isDark) {
-    return SizedBox(
-      width: double.infinity,
-      height: 54,
-      child: ElevatedButton(
-        onPressed: _isSaving ? null : _save,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: theme.colorScheme.primary,
-          foregroundColor: isDark ? AppColors.darkBg : Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppSizes.radiusButton),
-          ),
-          elevation: 0,
-        ),
-        child: _isSaving
-            ? const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Text(
-                'Save',
-                style: TextStyle(
-                  fontSize: AppSizes.fontTitle,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-      ),
-    );
-  }
-
-  Widget _label(BuildContext context, String text) =>
-      Text(text, style: Theme.of(context).textTheme.labelMedium);
 }
